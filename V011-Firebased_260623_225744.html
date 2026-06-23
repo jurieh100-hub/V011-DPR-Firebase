@@ -1,0 +1,2334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Daily Progress Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --primary: #25D366; --primary-dark: #128C7E; --whatsapp: #25D366;
+            --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+            --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb;
+            --gray-300: #d1d5db; --gray-400: #9ca3af; --gray-500: #6b7280;
+            --gray-600: #4b5563; --gray-700: #374151; --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--gray-50); color: var(--gray-800); line-height: 1.6;
+            overflow-x: hidden; -webkit-font-smoothing: antialiased;
+        }
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white; padding: 1rem; position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .header-top { display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 1.1rem; font-weight: 700; }
+        .header-date { font-size: 0.75rem; opacity: 0.9; margin-top: 0.25rem; }
+        .main-content { padding: 1rem; max-width: 600px; margin: 0 auto; padding-bottom: 120px; }
+        .card { background: white; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid var(--gray-100); }
+        .card-title { font-size: 0.9375rem; font-weight: 700; color: var(--gray-800); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-label { display: block; font-size: 0.8125rem; font-weight: 600; color: var(--gray-600); margin-bottom: 0.375rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .form-input, .form-select { width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--gray-200); border-radius: 8px; font-size: 1rem; background: white; }
+        .form-input:focus, .form-select:focus { outline: none; border-color: var(--primary); }
+        .form-textarea { width: 100%; padding: 0.75rem; border: 2px solid var(--gray-200); border-radius: 8px; font-size: 0.9375rem; min-height: 80px; resize: vertical; font-family: inherit; }
+        .project-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+        .project-card { padding: 1rem; border: 2px solid var(--gray-200); border-radius: 10px; text-align: center; cursor: pointer; transition: all 0.2s; background: white; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+        .project-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+        .project-card.selected { border-color: var(--primary); background: rgba(37, 211, 102, 0.05); }
+        .project-card-name { font-weight: 600; font-size: 0.875rem; color: var(--gray-700); pointer-events: none; }
+        .line-selector { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .line-btn { padding: 0.5rem 1rem; border: 2px solid var(--gray-200); border-radius: 8px; background: white; font-weight: 600; color: var(--gray-600); cursor: pointer; font-size: 0.875rem; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+        .line-btn.selected { background: var(--primary); color: white; border-color: var(--primary); }
+        .task-item { background: var(--gray-50); border-radius: 10px; padding: 1rem; border: 1px solid var(--gray-200); margin-bottom: 0.75rem; }
+        .task-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .task-name { font-weight: 600; font-size: 0.9375rem; }
+        .task-value { font-weight: 800; font-size: 1.25rem; color: var(--primary); }
+        .task-input-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+        .task-num-input { width: 80px; padding: 0.5rem; border: 2px solid var(--gray-200); border-radius: 8px; font-size: 1rem; font-weight: 700; text-align: center; }
+        .task-num-input:focus { outline: none; border-color: var(--primary); }
+        .task-bar-bg { flex: 1; height: 24px; background: var(--gray-200); border-radius: 12px; overflow: hidden; position: relative; }
+        .task-bar-fill { height: 100%; border-radius: 12px; transition: width 0.3s ease; width: 0%; }
+        .task-bar-fill.low { background: linear-gradient(90deg, #dc2626, #ef4444); }
+        .task-bar-fill.medium { background: linear-gradient(90deg, #d97706, #f59e0b); }
+        .task-bar-fill.high { background: linear-gradient(90deg, var(--primary-dark), var(--primary)); }
+        .task-bar-fill.complete { background: linear-gradient(90deg, #059669, #10b981); }
+        .task-bar-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; line-height: 24px; font-size: 0.75rem; font-weight: 700; color: var(--gray-700); }
+        .upload-zone { border: 2px dashed var(--gray-300); border-radius: 12px; padding: 1.5rem 1rem; text-align: center; cursor: pointer; background: var(--gray-50); -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+        .upload-zone:active { border-color: var(--primary); background: rgba(37, 211, 102, 0.03); }
+        .file-input { display: none; }
+        .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.75rem; }
+        .photo-item { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 1; }
+        .photo-item img { width: 100%; height: 100%; object-fit: cover; }
+        .photo-remove { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background: var(--danger); color: white; border: none; border-radius: 50%; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn { width: 100%; padding: 1rem; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+        .btn-whatsapp { background: var(--whatsapp); color: white; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); }
+        .btn-whatsapp:active { transform: scale(0.98); }
+        .btn-secondary { background: white; color: var(--gray-700); border: 2px solid var(--gray-200); }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .whatsapp-preview { background: #E5DDD5; border-radius: 12px; padding: 1rem; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+        .whatsapp-bubble { background: #DCF8C6; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; max-width: 90%; margin-left: auto; font-size: 0.875rem; line-height: 1.5; }
+        .whatsapp-bubble .header { background: none; color: var(--gray-800); padding: 0; position: static; box-shadow: none; font-weight: 700; margin-bottom: 0.25rem; }
+        .whatsapp-time { font-size: 0.6875rem; color: var(--gray-500); text-align: right; margin-top: 0.25rem; }
+        .hidden { display: none !important; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--gray-800); color: white; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 0.875rem; font-weight: 500; z-index: 1000; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .export-fixed { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 1rem; border-top: 1px solid var(--gray-200); box-shadow: 0 -4px 12px rgba(0,0,0,0.08); z-index: 90; display: flex; gap: 0.5rem; max-width: 600px; margin: 0 auto; }
+        .export-fixed .btn { padding: 0.875rem; font-size: 0.9375rem; }
+        .export-fixed .btn-whatsapp { flex: 1.5; }
+        .export-fixed .btn-secondary { flex: 1; }
+        .admin-panel { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1001; align-items: center; justify-content: center; padding: 1rem; }
+        .admin-panel.active { display: flex; }
+        .admin-box { background: white; border-radius: 16px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        .admin-header { background: var(--gray-800); color: white; padding: 1rem; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .admin-body { padding: 1rem; }
+        .config-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; }
+        .config-row input, .config-row select { flex: 1; padding: 0.5rem; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 0.875rem; }
+        .btn-icon { width: 32px; height: 32px; border-radius: 6px; border: none; background: var(--gray-200); cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; }
+        .btn-icon:hover { background: var(--danger); color: white; }
+        .cam-btn { background: var(--primary); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 0.5rem; width: 100%; -webkit-user-select: none; user-select: none; touch-action: manipulation; font-size: 1rem; }
+        .cam-btn:active { transform: scale(0.95); }
+        .admin-link { display: block; text-align: center; padding: 0.5rem; color: var(--gray-400); font-size: 0.75rem; text-decoration: underline; cursor: pointer; margin-top: 2rem; }
+
+        .dash-card { background: white; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid var(--gray-100); }
+        .dash-title { font-size: 0.9375rem; font-weight: 700; color: var(--gray-800); margin-bottom: 1rem; }
+        .dash-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        .dash-table th { text-align: left; padding: 0.5rem; background: var(--gray-100); font-weight: 600; color: var(--gray-700); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .dash-table td { padding: 0.75rem 0.5rem; border-bottom: 1px solid var(--gray-100); }
+        .dash-table tr:last-child td { border-bottom: none; }
+        .dash-table tr { cursor: pointer; transition: background 0.15s; }
+        .dash-table tr:hover { background: var(--gray-50); }
+        .dash-table tr.active { background: rgba(37, 211, 102, 0.08); }
+        .dash-bar-wrap { width: 100px; height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden; }
+        .dash-bar-fill { height: 100%; background: var(--primary); border-radius: 4px; }
+        .dash-pct { font-weight: 700; color: var(--primary); font-size: 0.875rem; }
+        .dash-totals { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--gray-100); }
+        .dash-total-item { text-align: center; }
+        .dash-total-val { font-size: 1.25rem; font-weight: 800; color: var(--gray-800); }
+        .dash-total-label { font-size: 0.6875rem; color: var(--gray-500); text-transform: uppercase; }
+
+        .project-detail { margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--gray-100); }
+        .project-detail-title { font-size: 0.8125rem; font-weight: 700; color: var(--gray-700); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .line-detail-btn { padding: 0.375rem 0.75rem; border: 2px solid var(--primary); border-radius: 6px; background: white; color: var(--primary); font-weight: 600; font-size: 0.75rem; cursor: pointer; white-space: nowrap; }
+        .line-detail-btn:active { background: var(--primary); color: white; }
+
+        .task-history { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--gray-200); }
+        .task-history-title { font-size: 0.6875rem; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+        .task-history-item { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--gray-500); padding: 0.125rem 0; }
+        .current-progress-badge { display: inline-block; background: var(--primary); color: white; font-size: 0.6875rem; font-weight: 700; padding: 0.125rem 0.5rem; border-radius: 4px; margin-left: 0.5rem; }
+        .task-current-value { font-size: 0.75rem; color: var(--gray-500); margin-top: 0.25rem; }
+        .task-timing-info { font-size: 0.75rem; color: var(--gray-500); margin-top: 0.25rem; font-weight: 500; display: flex; justify-content: space-between; }
+
+        .quick-actions { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+        .quick-btn { padding: 0.5rem 1rem; border: 2px solid var(--primary); border-radius: 8px; background: white; color: var(--primary); font-weight: 600; font-size: 0.8125rem; cursor: pointer; flex: 1; min-width: 120px; text-align: center; }
+        .quick-btn:active { background: var(--primary); color: white; }
+        .recent-reports { margin-top: 0.5rem; }
+        .recent-report-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--gray-50); border-radius: 6px; margin-bottom: 0.25rem; font-size: 0.8125rem; cursor: pointer; border: 1px solid transparent; }
+        .recent-report-item:hover { border-color: var(--primary); background: white; }
+        .recent-report-item .date { color: var(--gray-500); font-size: 0.75rem; }
+        .recent-report-item .info { font-weight: 600; color: var(--gray-700); }
+
+        .badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .badge-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .badge-success { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid var(--success); }
+        .badge-warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid var(--warning); }
+
+        .line-summary-card { background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem; }
+        .line-summary-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+        .line-summary-title { font-weight: 700; font-size: 1rem; color: var(--gray-800); }
+        .line-summary-dates { font-size: 0.75rem; color: var(--gray-500); }
+        .task-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem; }
+        .task-grid-item { background: var(--gray-50); border-radius: 8px; padding: 0.75rem; text-align: center; border: 1px solid var(--gray-200); }
+        .task-grid-name { font-size: 0.6875rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+        .task-grid-value { font-size: 1.125rem; font-weight: 800; }
+        .task-grid-dates { font-size: 0.7rem; color: var(--gray-400); margin-top: 0.25rem; }
+        .task-grid-days { font-size: 0.7rem; font-weight: 600; margin-top: 0.25rem; }
+
+        .back-btn { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--primary); font-weight: 600; font-size: 0.875rem; cursor: pointer; margin-bottom: 1rem; background: none; border: none; padding: 0; }
+        .view-toggle { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .view-toggle button { flex: 1; padding: 0.5rem; border-radius: 8px; font-weight: 600; font-size: 0.8125rem; cursor: pointer; border: 2px solid var(--gray-200); background: white; }
+        .view-toggle button.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        .section-title { font-size: 1rem; font-weight: 700; color: var(--gray-800); margin-bottom: 0.75rem; }
+        .empty-state { text-align: center; padding: 2rem; color: var(--gray-400); font-size: 0.875rem; }
+
+        .line-expand { cursor: pointer; padding: 0.75rem; border-radius: 8px; background: var(--gray-50); margin-bottom: 0.5rem; border: 1px solid var(--gray-200); transition: all 0.2s; }
+        .line-expand:hover { border-color: var(--primary); }
+        .line-expand-header { display: flex; justify-content: space-between; align-items: center; }
+        .line-expand-name { font-weight: 600; font-size: 0.9375rem; color: var(--gray-700); }
+        .line-expand-meta { font-size: 0.75rem; color: var(--gray-500); margin-top: 0.25rem; }
+        .line-expand-arrow { font-size: 1.25rem; color: var(--gray-400); transition: transform 0.2s; }
+        .line-expand.open .line-expand-arrow { transform: rotate(180deg); }
+        .line-expand-content { display: none; padding-top: 0.75rem; margin-top: 0.5rem; border-top: 1px solid var(--gray-200); }
+        .line-expand.open .line-expand-content { display: block; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="header-top">
+            <h1>Daily Progress Report</h1>
+        </div>
+        <div class="header-date" id="currentDate"></div>
+    </header>
+
+    <main class="main-content" id="mainContent">
+        <div id="viewDashboard">
+            <div class="card" id="quickActionsCard">
+                <div class="card-title">Quick Actions</div>
+                <div class="quick-actions" id="quickActions">
+                    <button class="quick-btn" id="btnContinueLast">Continue Last Report</button>
+                    <button class="quick-btn" id="btnNewReport">New Report</button>
+                </div>
+                <div class="recent-reports" id="recentReports"></div>
+            </div>
+
+            <div class="dash-card">
+                <div class="dash-title">Project Dashboard</div>
+                <div class="view-toggle">
+                    <button class="active" id="btnViewProjects" onclick="showDashboardView('projects')">Projects</button>
+                    <button id="btnViewSummary" onclick="showDashboardView('summary')">Summary Matrix</button>
+                </div>
+                <div style="margin-bottom:1rem;">
+                    <button class="btn btn-secondary" onclick="exportSummaryPDF()" style="width:100%;padding:0.75rem;font-size:0.875rem;">
+                        <span style="margin-right:0.5rem;">&#128196;</span> Export Summary PDF
+                    </button>
+                </div>
+
+                <div id="dashProjectsView">
+                    <table class="dash-table">
+                        <thead><tr><th>Project</th><th>Progress</th><th>Tasks</th><th>Lines</th></tr></thead>
+                        <tbody id="dashTableBody"></tbody>
+                    </table>
+                    <div id="projectDetailContainer"></div>
+                </div>
+
+                <div id="dashSummaryView" style="display:none;">
+                    <div id="summaryMatrixContainer" style="overflow-x:auto; -webkit-overflow-scrolling:touch;"></div>
+                </div>
+
+                <div class="dash-totals">
+                    <div class="dash-total-item"><div class="dash-total-val" id="sumProgress">0%</div><div class="dash-total-label">Overall</div></div>
+                    <div class="dash-total-item"><div class="dash-total-val" id="sumCompleted">0/0</div><div class="dash-total-label">Done</div></div>
+                    <div class="dash-total-item"><div class="dash-total-val" id="sumLines">0</div><div class="dash-total-label">Lines</div></div>
+                    <div class="dash-total-item"><div class="dash-total-val" id="sumResources">0</div><div class="dash-total-label">Workers</div></div>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--gray-400); text-align: center; margin-top: 0.75rem;">
+                    Last updated: <span id="sumLastUpdate">Never</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="viewLineSummary" class="hidden">
+            <button class="back-btn" onclick="backToDashboard()">&larr; Back to Dashboard</button>
+            <div class="card">
+                <div class="card-title" id="lineSummaryTitle">Line Summary</div>
+                <div id="lineSummaryContent"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Task Details</div>
+                <div id="lineTaskDetails"></div>
+            </div>
+            <div style="display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;">
+                <button class="btn btn-whatsapp" onclick="editLineReport()" style="flex:1;min-width:100px;">Edit Report</button>
+                <button class="btn btn-secondary" onclick="copyLineSummary()" style="flex:1;min-width:80px;">Copy</button>
+                <button class="btn btn-secondary" onclick="shareLineSummary()" style="flex:1;min-width:100px;">WhatsApp</button>
+                <button class="btn btn-secondary" onclick="exportLinePDF()" style="flex:1;min-width:100px;">PDF</button>
+            </div>
+            <button class="btn btn-danger" onclick="backToDashboard()" style="margin-bottom:2rem;">Cancel</button>
+        </div>
+
+        <div id="viewReportForm" class="hidden">
+            <button class="back-btn" onclick="cancelReport()">&larr; Back to Dashboard</button>
+
+            <div class="card" id="step-project">
+                <div class="card-title">Select Project</div>
+                <div class="project-grid" id="projectGrid"></div>
+            </div>
+
+            <div class="card hidden" id="step-line">
+                <div class="card-title">Select Line</div>
+                <div class="line-selector" id="lineSelector"></div>
+            </div>
+
+            <div class="card hidden" id="step-worker">
+                <div class="card-title">Team Lead Info</div>
+                <div class="form-group">
+                    <label class="form-label">Team Lead Name</label>
+                    <input type="text" class="form-input" id="workerName" placeholder="Enter team lead name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Resources (Workers)</label>
+                    <input type="number" class="form-input" id="resourcesCount" placeholder="Number of workers" min="0" value="">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Shift</label>
+                    <select class="form-select" id="shiftSelect">
+                        <option value="Day">Day Shift</option>
+                        <option value="Evening">Evening Shift</option>
+                        <option value="Night">Night Shift</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card hidden" id="step-tasks">
+                <div class="card-title">Task Progress</div>
+                <div id="taskList"></div>
+            </div>
+
+            <div class="card hidden" id="step-notes">
+                <div class="card-title">Notes</div>
+                <div class="form-group">
+                    <label class="form-label">Achievements Today</label>
+                    <textarea class="form-textarea" id="achievements" placeholder="What was completed..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Issues / Blockers</label>
+                    <textarea class="form-textarea" id="issues" placeholder="Any problems..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tomorrow's Plan</label>
+                    <textarea class="form-textarea" id="tomorrowPlan" placeholder="What's next..."></textarea>
+                </div>
+            </div>
+
+            <div class="card hidden" id="step-photos">
+                <div class="card-title">Photos</div>
+                <div class="upload-zone" id="uploadZone">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">+</div>
+                    <div style="font-size: 0.875rem; color: var(--gray-600); font-weight: 600;">Tap to add photos</div>
+                    <div style="font-size: 0.75rem; color: var(--gray-400); margin-top: 0.25rem;">Select existing photos</div>
+                </div>
+                <input type="file" id="fileInput" class="file-input" accept="image/*" multiple>
+                <button class="cam-btn" id="camBtn">Open Camera</button>
+                <div class="photo-grid" id="photoGrid"></div>
+            </div>
+
+            <div class="card hidden" id="step-generate">
+                <div class="card-title">Preview</div>
+                <div class="whatsapp-preview" id="whatsappPreview">
+                    <div class="whatsapp-bubble">
+                        <div class="header">Daily Progress Report</div>
+                        <div id="previewContent">Select project and line to see preview...</div>
+                        <div class="whatsapp-time" id="previewTime">Now</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-link" id="adminLink">Admin Settings</div>
+    </main>
+
+    <div class="export-fixed" id="exportBar" style="display:none;">
+        <button class="btn btn-whatsapp" id="btnShareWA">WhatsApp</button>
+        <button class="btn btn-secondary" id="btnCopy">Copy</button>
+        <button class="btn btn-secondary" id="btnSave">Save</button>
+    </div>
+
+    <div class="admin-panel" id="adminPanel">
+        <div class="admin-box">
+            <div class="admin-header">
+                <h3 style="font-size: 1rem;">Admin Configuration</h3>
+                <button id="adminClose" style="background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;">X</button>
+            </div>
+            <div class="admin-body">
+                <div style="margin-bottom: 1rem;">
+                    <div style="font-size: 0.875rem; font-weight: 700; margin-bottom: 0.5rem;">Login</div>
+                    <input type="password" id="adminPass" placeholder="Admin password" style="width:100%;padding:0.5rem;border:1px solid var(--gray-300);border-radius:6px;">
+                    <button class="btn btn-secondary" id="btnAdminLogin" style="margin-top:0.5rem;width:auto;padding:0.5rem 1rem;font-size:0.875rem;">Login</button>
+                </div>
+
+                <div id="adminContent" style="display:none;">
+                    <div id="firebaseStatus" style="font-size:0.75rem; color:var(--gray-500); margin-bottom:0.5rem; padding:0.5rem; background:var(--gray-50); border-radius:6px;">
+                        Firebase: Checking...
+                    </div>
+                    <!-- Projects Section -->
+                    <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid var(--gray-200);">
+                        <div style="font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--gray-800);">Projects</div>
+                        <div id="adminProjects"></div>
+                        <button class="btn btn-secondary" id="btnAddProject" style="margin-top:0.5rem;width:auto;padding:0.5rem 1rem;font-size:0.875rem;">+ Add Project</button>
+                    </div>
+
+                    <!-- Project Lines Section -->
+                    <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid var(--gray-200);">
+                        <div style="font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--gray-800);">Project Lines</div>
+                        <div id="adminProjectLines"></div>
+                    </div>
+
+                    <!-- Tasks Section -->
+                    <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid var(--gray-200);">
+                        <div style="font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--gray-800);">Tasks</div>
+                        <div id="adminTasks"></div>
+                    </div>
+
+                    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                        <button class="btn btn-secondary" id="btnExport" style="width:auto;padding:0.5rem 1rem;font-size:0.875rem;">Export Full Backup</button>
+                        <button class="btn btn-secondary" id="btnImport" style="width:auto;padding:0.5rem 1rem;font-size:0.875rem;">Import Full Backup</button>
+                        <button class="btn btn-secondary" id="btnSyncConfig" style="width:auto;padding:0.5rem 1rem;font-size:0.875rem;">Sync Config Only</button>
+                        <button class="btn btn-secondary" id="btnFirebaseSync" style="width:auto;padding:0.5rem 1rem;font-size:0.875rem;">Firebase Sync</button>
+                        <button class="btn btn-secondary" id="btnResetConfig" style="width:auto;padding:0.5rem 1rem;font-size:0.875rem;">Reset</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="configImport" style="display:none;" accept=".json"><input type="file" id="configImport" style="display:none;" accept=".json">
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC-MLpfD0FoV7pOz5sTQ9GvB3sXUNXatKU",
+            authDomain: "v009-dpr-master-655a8.firebaseapp.com",
+            projectId: "v009-dpr-master-655a8",
+            storageBucket: "v009-dpr-master-655a8.firebasestorage.app",
+            messagingSenderId: "472589038817",
+            appId: "1:472589038817:web:ef17cba3bd2b373aca73a0"
+        };
+
+        // Initialize Firebase
+        let firebaseApp = null;
+        let firebaseStorage = null;
+        let firebaseEnabled = false;
+
+        function initFirebase() {
+            try {
+                if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length === 0) {
+                    firebaseApp = firebase.initializeApp(firebaseConfig);
+                    firebaseStorage = firebase.storage();
+                    firebaseEnabled = true;
+                    console.log('Firebase initialized successfully');
+                } else if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+                    firebaseApp = firebase.apps[0];
+                    firebaseStorage = firebase.storage();
+                    firebaseEnabled = true;
+                }
+            } catch (e) {
+                console.error('Firebase init failed:', e);
+                firebaseEnabled = false;
+            }
+        }
+
+        // Upload photo to Firebase Storage
+        async function uploadPhotoToFirebase(file) {
+            if (!firebaseEnabled || !firebaseStorage) {
+                console.log('Firebase not available, using local storage only');
+                return null;
+            }
+            try {
+                const timestamp = Date.now();
+                const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+                const path = 'reports/photos/' + timestamp + '_' + safeName;
+                const ref = firebaseStorage.ref(path);
+                const snapshot = await ref.put(file);
+                const url = await snapshot.ref.getDownloadURL();
+                console.log('Photo uploaded to Firebase:', url);
+                return url;
+            } catch (e) {
+                console.error('Firebase upload failed:', e);
+                return null;
+            }
+        }
+
+        // Backup report to Firebase Storage
+        async function backupReportToFirebase(reportData) {
+            if (!firebaseEnabled || !firebaseStorage) return;
+            try {
+                const timestamp = Date.now();
+                const dateStr = new Date().toISOString().split('T')[0];
+                const path = 'backups/report_' + dateStr + '_' + timestamp + '.json';
+                const ref = firebaseStorage.ref(path);
+                const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+                await ref.put(blob);
+                console.log('Report backed up to Firebase');
+            } catch (e) {
+                console.error('Firebase backup failed:', e);
+            }
+        }
+
+        // Sync config with Firebase (for multi-device sharing)
+        async function syncConfigWithFirebase() {
+            if (!firebaseEnabled || !firebaseStorage) {
+                showToast('Firebase not available', 'error');
+                return;
+            }
+            try {
+                const ref = firebaseStorage.ref('config/dpr_config.json');
+                // Try to download existing config first
+                try {
+                    const url = await ref.getDownloadURL();
+                    const response = await fetch(url);
+                    const remoteConfig = await response.json();
+                    if (remoteConfig && remoteConfig.projects) {
+                        if (confirm('Found remote config. Replace local config?')) {
+                            config = remoteConfig;
+                            if (!config.lineTasks) config.lineTasks = {};
+                            saveConfig();
+                            renderAdminContent();
+                            renderProjects();
+                            updateSummary();
+                            renderRecentReports();
+                            showToast('Config synced from Firebase');
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    // No remote config exists yet
+                }
+                // Upload local config
+                const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+                await ref.put(blob);
+                showToast('Config uploaded to Firebase');
+            } catch (e) {
+                console.error('Config sync failed:', e);
+                showToast('Config sync failed', 'error');
+            }
+        }
+
+        // Upload all photos in current report to Firebase
+        async function uploadAllPhotosToFirebase() {
+            if (!firebaseEnabled || currentReport.photos.length === 0) return;
+            showToast('Uploading photos to cloud...');
+            for (var i = 0; i < currentReport.photos.length; i++) {
+                var photo = currentReport.photos[i];
+                if (photo.src && photo.src.startsWith('data:')) {
+                    // Convert base64 to file and upload
+                    try {
+                        var response = await fetch(photo.src);
+                        var blob = await response.blob();
+                        var file = new File([blob], photo.name || 'photo.jpg', { type: blob.type });
+                        var url = await uploadPhotoToFirebase(file);
+                        if (url) {
+                            currentReport.photos[i].src = url;
+                            currentReport.photos[i].firebaseUrl = url;
+                        }
+                    } catch (e) {
+                        console.error('Photo upload failed:', e);
+                    }
+                }
+            }
+            renderPhotos();
+            showToast('Photos uploaded to cloud');
+        }
+
+        const DEFAULT_CONFIG = {
+            projects: [
+                { id: 'p1', name: 'Building A' },
+                { id: 'p2', name: 'Building B' },
+                { id: 'p3', name: 'Building C' }
+            ],
+            projectLines: {
+                'p1': ['Line 1', 'Line 2', 'Line 3'],
+                'p2': ['Line A', 'Line B'],
+                'p3': ['Line X', 'Line Y', 'Line Z', 'Line W']
+            },
+            tasks: [
+                { id: 't1', name: 'Floor Tray', total: 100, unit: 'm', start: '', end: '' },
+                { id: 't2', name: 'Wire Basket', total: 100, unit: 'm', start: '', end: '' },
+                { id: 't3', name: 'Earthing', total: 100, unit: 'm', start: '', end: '' },
+                { id: 't4', name: '480V', total: 100, unit: 'm', start: '', end: '' },
+                { id: 't5', name: '120V', total: 100, unit: 'm', start: '', end: '' },
+                { id: 't6', name: 'DC', total: 100, unit: 'm', start: '', end: '' },
+                { id: 't7', name: 'Network', total: 100, unit: 'm', start: '', end: '' },
+                { id: 't8', name: 'Termination', total: 100, unit: 'm', start: '', end: '' }
+            ],
+            lineTasks: {}
+        };
+
+        let config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+        let currentReport = { project: null, line: null, worker: '', resources: '', shift: 'Day', tasks: {}, notes: {}, photos: [] };
+        let expandedProjectId = null;
+        let adminSelectedProjectId = null;
+        let adminSelectedLineName = null;
+        let viewingLineSummary = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initFirebase();
+            loadConfig();
+            initDate();
+            renderProjects();
+            updateSummary();
+            renderRecentReports();
+            bindEvents();
+        });
+
+        function bindEvents() {
+            document.getElementById('uploadZone').addEventListener('click', function(e) {
+                e.preventDefault(); e.stopPropagation();
+                document.getElementById('fileInput').click();
+            });
+            document.getElementById('fileInput').addEventListener('change', function(e) {
+                if (this.files && this.files.length > 0) handlePhotos(this.files);
+            });
+            document.getElementById('camBtn').addEventListener('click', function(e) {
+                e.preventDefault(); e.stopPropagation();
+                openCamera();
+            });
+            document.getElementById('btnShareWA').addEventListener('click', function(e) {
+                e.preventDefault();
+                shareToWhatsApp();
+            });
+            document.getElementById('btnCopy').addEventListener('click', function(e) {
+                e.preventDefault();
+                copyReport();
+            });
+            document.getElementById('btnSave').addEventListener('click', function(e) {
+                e.preventDefault();
+                saveAndReset();
+            });
+            document.getElementById('adminLink').addEventListener('click', function(e) {
+                e.preventDefault();
+                openAdmin();
+            });
+            document.getElementById('adminClose').addEventListener('click', function(e) {
+                e.preventDefault();
+                closeAdmin();
+            });
+            document.getElementById('btnAdminLogin').addEventListener('click', function(e) {
+                e.preventDefault();
+                doAdminLogin();
+            });
+            document.getElementById('btnAddProject').addEventListener('click', function(e) {
+                e.preventDefault();
+                addProject();
+            });
+            document.getElementById('btnExport').addEventListener('click', function(e) {
+                e.preventDefault();
+                exportConfig();
+            });
+            document.getElementById('btnImport').addEventListener('click', function(e) {
+                e.preventDefault();
+                importConfig();
+            });
+            document.getElementById('btnResetConfig').addEventListener('click', function(e) {
+                e.preventDefault();
+                resetDefaults();
+            });
+            document.getElementById('btnSyncConfig').addEventListener('click', function(e) {
+                e.preventDefault();
+                syncConfigOnly();
+            });
+            document.getElementById('btnFirebaseSync').addEventListener('click', function(e) {
+                e.preventDefault();
+                syncConfigWithFirebase();
+            });
+            document.getElementById('configImport').addEventListener('change', function(e) {
+                handleConfigImport(this);
+            });
+            document.getElementById('btnContinueLast').addEventListener('click', function(e) {
+                e.preventDefault();
+                continueLastReport();
+            });
+            document.getElementById('btnNewReport').addEventListener('click', function(e) {
+                e.preventDefault();
+                startNewReport();
+            });
+
+            ['workerName', 'resourcesCount', 'shiftSelect', 'achievements', 'issues', 'tomorrowPlan'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', updatePreview);
+                    el.addEventListener('change', updatePreview);
+                }
+            });
+        }
+
+        function showView(viewName) {
+            document.getElementById('viewDashboard').classList.add('hidden');
+            document.getElementById('viewLineSummary').classList.add('hidden');
+            document.getElementById('viewReportForm').classList.add('hidden');
+            document.getElementById('exportBar').style.display = 'none';
+            document.getElementById(viewName).classList.remove('hidden');
+            window.scrollTo(0, 0);
+            // Refresh summary matrix when returning to dashboard if it's the active view
+            if (viewName === 'viewDashboard') {
+                var sumView = document.getElementById('dashSummaryView');
+                var projView = document.getElementById('dashProjectsView');
+                if (sumView && sumView.style.display !== 'none' && projView && projView.style.display === 'none') {
+                    renderSummaryMatrix();
+                }
+            }
+        }
+
+        function showDashboardView(mode) {
+            document.getElementById('dashProjectsView').style.display = mode === 'projects' ? '' : 'none';
+            document.getElementById('dashSummaryView').style.display = mode === 'summary' ? '' : 'none';
+            document.getElementById('btnViewProjects').classList.toggle('active', mode === 'projects');
+            document.getElementById('btnViewSummary').classList.toggle('active', mode === 'summary');
+            if (mode === 'summary') renderSummaryMatrix();
+        }
+
+        function backToDashboard() {
+            viewingLineSummary = null;
+            showView('viewDashboard');
+            updateSummary();
+            // Refresh summary matrix if it's currently the active view
+            var sumView = document.getElementById('dashSummaryView');
+            var projView = document.getElementById('dashProjectsView');
+            if (sumView && sumView.style.display !== 'none' && projView && projView.style.display === 'none') {
+                renderSummaryMatrix();
+            }
+        }
+
+        function startNewReport() {
+            startOver();
+            showView('viewReportForm');
+            showStep('step-project');
+            document.getElementById('step-project').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function cancelReport() {
+            if (confirm('Discard current report and go back?')) {
+                startOver();
+                backToDashboard();
+            }
+        }
+
+        function loadConfig() {
+            var saved = localStorage.getItem('dpr_config');
+            if (saved) {
+                try {
+                    config = JSON.parse(saved);
+                    if (config.lines && !config.projectLines) {
+                        config.projectLines = {};
+                        config.projects.forEach(function(p) {
+                            config.projectLines[p.id] = config.lines.map(function(l) { return l.name || l; });
+                        });
+                        delete config.lines;
+                    }
+                } catch(e) {
+                    config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+                }
+            }
+            if (!config.tasks) config.tasks = [];
+            config.tasks.forEach(function(t) {
+                if (t.total === undefined || t.total === null) t.total = 100;
+                if (!t.unit) t.unit = 'm';
+                if (t.start === undefined) t.start = '';
+                if (t.end === undefined) t.end = '';
+            });
+            if (!config.lineTasks) config.lineTasks = {};
+            if (!config.projects) config.projects = [];
+        }
+
+        function saveConfig() {
+            localStorage.setItem('dpr_config', JSON.stringify(config));
+        }
+
+        function initDate() {
+            var now = new Date();
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        function getAllReports() {
+            try {
+                var stored = localStorage.getItem('dpr_reports');
+                if (stored) return JSON.parse(stored);
+            } catch(e) {}
+            return [];
+        }
+
+        function saveReportToStorage() {
+            var report = {
+                timestamp: Date.now(),
+                date: new Date().toISOString().split('T')[0],
+                project: currentReport.project ? currentReport.project.name : '',
+                line: currentReport.line ? currentReport.line.name : '',
+                worker: document.getElementById('workerName').value || '',
+                resources: document.getElementById('resourcesCount').value || '0',
+                shift: document.getElementById('shiftSelect').value,
+                tasks: JSON.parse(JSON.stringify(currentReport.tasks[currentReport.line.name] || {})),
+                notes: {
+                    achievements: document.getElementById('achievements').value,
+                    issues: document.getElementById('issues').value,
+                    tomorrow: document.getElementById('tomorrowPlan').value
+                },
+                resources: document.getElementById('resourcesCount').value || '0',
+                photos: currentReport.photos.length,
+                report_text: generateReportText()
+            };
+            var all = getAllReports();
+            all.push(report);
+            localStorage.setItem('dpr_reports', JSON.stringify(all));
+            // Also backup to Firebase
+            if (firebaseEnabled) {
+                backupReportToFirebase(report);
+            }
+            return report;
+        }
+
+        function getLatestLineProgress(projectName, lineName) {
+            var allReports = getAllReports();
+            // Sort by timestamp descending to get most recent first
+            var sorted = allReports.filter(function(r) {
+                return r.project === projectName && r.line === lineName && r.tasks;
+            }).sort(function(a, b) {
+                return (b.timestamp || 0) - (a.timestamp || 0);
+            });
+            // Return the most recent report's tasks
+            if (sorted.length > 0 && sorted[0].tasks) {
+                var latest = {};
+                Object.keys(sorted[0].tasks).forEach(function(tid) {
+                    latest[tid] = parseInt(sorted[0].tasks[tid]) || 0;
+                });
+                return latest;
+            }
+            return {};
+        }
+
+        function getLineReportHistory(projectName, lineName) {
+            var allReports = getAllReports();
+            return allReports.filter(function(r) {
+                return r.project === projectName && r.line === lineName;
+            }).sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
+        }
+
+        function getProjectLines(projectId) {
+            if (config.projectLines && config.projectLines[projectId]) {
+                return config.projectLines[projectId];
+            }
+            return [];
+        }
+
+        function getLineTasks(projectId, lineName) {
+            var key = projectId + '_' + lineName;
+            if (config.lineTasks && config.lineTasks[key] && config.lineTasks[key].length > 0) {
+                return JSON.parse(JSON.stringify(config.lineTasks[key]));
+            }
+            return JSON.parse(JSON.stringify(config.tasks || []));
+        }
+
+        function saveLineTasks(projectId, lineName, tasks) {
+            var key = projectId + '_' + lineName;
+            if (!config.lineTasks) config.lineTasks = {};
+            config.lineTasks[key] = tasks;
+            saveConfig();
+        }
+
+        function isTaskBehindSchedule(task, progressVal) {
+            if (!task.start || !task.end) return false;
+            var today = new Date();
+            today.setHours(0,0,0,0);
+            var end = new Date(task.end);
+            end.setHours(0,0,0,0);
+            var progress = progressVal || 0;
+            var tTotal = task.total || 100;
+            var pct = progress > 0 ? Math.min(100, Math.round((progress / tTotal) * 100)) : 0;
+            return today > end && pct < 100;
+        }
+
+        function getLineBehindStatus(projectId, lineName, latestProgress) {
+            if (!lineName) return { behind: 0, total: 0, isBehind: false };
+            var tasks = getLineTasks(projectId, lineName);
+            var behindCount = 0;
+            var totalWithDates = 0;
+            tasks.forEach(function(t) {
+                if (!t.name || t.name === 'New Task' || t.name.trim() === '') return;
+                if (t.start && t.end) {
+                    totalWithDates++;
+                    if (isTaskBehindSchedule(t, latestProgress[t.id])) behindCount++;
+                }
+            });
+            return { behind: behindCount, total: totalWithDates, isBehind: behindCount > 0 };
+        }
+
+        function updateSummary() {
+            var allReports = getAllReports();
+            var latestValues = {};
+            var reportedLinesPerProject = {};
+            var totalResources = 0;
+            var resourceReports = 0;
+
+            allReports.forEach(function(r) {
+                var projName = r.project || 'Unknown';
+                var lineName = r.line || 'Unknown';
+                if (!latestValues[projName]) latestValues[projName] = {};
+                if (!latestValues[projName][lineName]) latestValues[projName][lineName] = {};
+                if (!reportedLinesPerProject[projName]) reportedLinesPerProject[projName] = new Set();
+                reportedLinesPerProject[projName].add(lineName);
+                if (r.resources) {
+                    var res = parseInt(r.resources);
+                    if (!isNaN(res) && res > 0) {
+                        totalResources += res;
+                        resourceReports++;
+                    }
+                }
+            });
+            // Now get most recent values per project-line
+            config.projects.forEach(function(p) {
+                var plines = getProjectLines(p.id);
+                plines.forEach(function(ln) {
+                    var sorted = allReports.filter(function(r) {
+                        return r.project === p.name && r.line === ln && r.tasks;
+                    }).sort(function(a, b) {
+                        return (b.timestamp || 0) - (a.timestamp || 0);
+                    });
+                    if (sorted.length > 0 && sorted[0].tasks) {
+                        if (!latestValues[p.name]) latestValues[p.name] = {};
+                        if (!latestValues[p.name][ln]) latestValues[p.name][ln] = {};
+                        Object.keys(sorted[0].tasks).forEach(function(tid) {
+                            latestValues[p.name][ln][tid] = parseInt(sorted[0].tasks[tid]) || 0;
+                        });
+                    }
+                });
+            });
+
+            var projectStats = {};
+            var lineStats = {};
+
+            config.projects.forEach(function(p) {
+                var projName = p.name;
+                var projLines = getProjectLines(p.id);
+                var lineValues = latestValues[projName] || {};
+                var allTaskPct = [];
+                var completedTasks = 0;
+                var totalTasks = 0;
+                var activeLines = 0;
+                lineStats[p.id] = {};
+
+                projLines.forEach(function(ln) {
+                    var taskVals = lineValues[ln] || {};
+                    var hasData = Object.keys(taskVals).length > 0;
+                    if (hasData) activeLines++;
+                    var lineTaskList = getLineTasks(p.id, ln);
+                    var linePctVals = [];
+                    var lineCompleted = 0;
+                    var lineTotal = 0;
+                    lineTaskList.forEach(function(t) {
+                        if (!t.name || t.name === 'New Task' || t.name.trim() === '') return;
+                        var val = taskVals[t.id];
+                        var tTotal = t.total || 100;
+                        if (val !== undefined) {
+                            var pct = Math.min(100, Math.round((val / tTotal) * 100));
+                            allTaskPct.push(pct);
+                            linePctVals.push(pct);
+                            totalTasks++;
+                            lineTotal++;
+                            if (pct >= 100) { completedTasks++; lineCompleted++; }
+                        }
+                    });
+                    lineStats[p.id][ln] = {
+                        avg: linePctVals.length > 0 ? Math.round(linePctVals.reduce(function(a,b){return a+b;}, 0) / linePctVals.length) : 0,
+                        completed: lineCompleted,
+                        total: lineTotal
+                    };
+                });
+                var avg = allTaskPct.length > 0 ? Math.round(allTaskPct.reduce(function(a,b){return a+b;}, 0) / allTaskPct.length) : 0;
+                projectStats[projName] = { avg: avg, completed: completedTasks, total: totalTasks, activeLines: activeLines, configuredLines: projLines.length };
+            });
+
+            var allProjectAvgs = [];
+            var totalCompleted = 0;
+            var totalTasksAll = 0;
+            var allActiveLines = new Set();
+            Object.keys(projectStats).forEach(function(pn) {
+                var s = projectStats[pn];
+                if (s.total > 0) allProjectAvgs.push(s.avg);
+                totalCompleted += s.completed;
+                totalTasksAll += s.total;
+                if (reportedLinesPerProject[pn]) {
+                    reportedLinesPerProject[pn].forEach(function(ln) { allActiveLines.add(pn + '|' + ln); });
+                }
+            });
+            var overallAvg = allProjectAvgs.length > 0 ? Math.round(allProjectAvgs.reduce(function(a,b){return a+b;}, 0) / allProjectAvgs.length) : 0;
+
+            var tbody = document.getElementById('dashTableBody');
+            tbody.innerHTML = '';
+            config.projects.forEach(function(p) {
+                var s = projectStats[p.name] || { avg: 0, completed: 0, total: 0, activeLines: 0, configuredLines: 0 };
+                
+                var tr = document.createElement('tr');
+                tr.setAttribute('data-project-id', p.id);
+                if (expandedProjectId === p.id) tr.classList.add('active');
+                tr.innerHTML = '<td><div><strong>' + p.name + '</strong></div></td>' +
+                    '<td><div style="display:flex;align-items:center;gap:0.5rem;"><div class="dash-bar-wrap"><div class="dash-bar-fill" style="width:' + s.avg + '%"></div></div><span class="dash-pct">' + s.avg + '%</span></div></td>' +
+                    '<td>' + s.completed + '/' + s.total + '</td>' +
+                    '<td>' + s.activeLines + '/' + s.configuredLines + '</td>';
+                tr.addEventListener('click', function() { toggleProjectDetail(p.id); });
+                tbody.appendChild(tr);
+            });
+            if (config.projects.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--gray-400);padding:1rem;">No projects configured</td></tr>';
+            }
+
+            var detailContainer = document.getElementById('projectDetailContainer');
+            detailContainer.innerHTML = '';
+            if (expandedProjectId) {
+                var proj = config.projects.find(function(p) { return p.id === expandedProjectId; });
+                if (proj) {
+                    var detailDiv = document.createElement('div');
+                    detailDiv.className = 'project-detail';
+                    detailDiv.innerHTML = '<div class="project-detail-title" style="display:flex; align-items:center; flex-wrap:wrap;">' + proj.name + ' - Lines</div>';
+                    var plines = getProjectLines(expandedProjectId);
+                    if (plines.length === 0) {
+                        detailDiv.innerHTML += '<div style="font-size:0.8125rem;color:var(--gray-400);padding:0.5rem;">No lines configured for this project.</div>';
+                    } else {
+                        plines.forEach(function(ln) {
+                            var ls = lineStats[expandedProjectId] && lineStats[expandedProjectId][ln] ? lineStats[expandedProjectId][ln] : { avg: 0, completed: 0, total: 0 };
+                            var latestTaskProgress = getLatestLineProgress(proj.name, ln);
+                            var lineBehind = getLineBehindStatus(proj.id, ln, latestTaskProgress);
+                            var lineBehindBadge = lineBehind.isBehind ? '<span class="badge badge-danger" style="margin-left:0.5rem; font-size:0.65rem;">Behind</span>' : '';
+                            var lineExpand = document.createElement('div');
+                            lineExpand.className = 'line-expand';
+                            lineExpand.innerHTML = '<div class="line-expand-header">' +
+                                '<div><div class="line-expand-name">' + ln + lineBehindBadge + '</div>' +
+                                '<div class="line-expand-meta">' + ls.avg + '% complete | ' + ls.completed + '/' + ls.total + ' tasks</div></div>' +
+                                '<div style="display:flex; gap:0.5rem; align-items:center;"><span class="dash-pct">' + ls.avg + '%</span><span class="line-expand-arrow">&#9662;</span></div></div>' +
+                                '<div class="line-expand-content" id="line-expand-' + ln.replace(/\s/g,'_') + '"></div>';
+                            lineExpand.addEventListener('click', function(e) {
+                                if (e.target.closest('.line-detail-btn')) return;
+                                var content = this.querySelector('.line-expand-content');
+                                var isOpen = this.classList.contains('open');
+                                document.querySelectorAll('.line-expand.open').forEach(function(el) { if (el !== lineExpand) el.classList.remove('open'); });
+                                this.classList.toggle('open');
+                                if (!isOpen) renderLineExpandContent(content, proj, ln, latestTaskProgress, ls);
+                            });
+                            detailDiv.appendChild(lineExpand);
+                        });
+                    }
+                    detailContainer.appendChild(detailDiv);
+                }
+            }
+
+            document.getElementById('sumProgress').textContent = overallAvg + '%';
+            document.getElementById('sumCompleted').textContent = totalCompleted + '/' + totalTasksAll;
+            document.getElementById('sumLines').textContent = allActiveLines.size;
+            document.getElementById('sumResources').textContent = resourceReports > 0 ? Math.round(totalResources / resourceReports) : 0;
+            var lastUpdate = 'Never';
+            if (allReports.length > 0) {
+                var dates = allReports.map(function(r) { return r.timestamp || 0; }).sort(function(a,b){return b-a;});
+                if (dates[0]) { var d = new Date(dates[0]); lastUpdate = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+            }
+            document.getElementById('sumLastUpdate').textContent = lastUpdate;
+        }
+
+        function renderLineExpandContent(container, proj, ln, latestTaskProgress, ls) {
+            var lineTaskList = getLineTasks(proj.id, ln);
+            var html = '<div class="task-grid" style="margin-bottom:0.75rem;">';
+            lineTaskList.forEach(function(t) {
+                if (!t.name || t.name === 'New Task' || t.name.trim() === '') return;
+                var val = latestTaskProgress[t.id] || 0;
+                var tTotal = t.total || 100;
+                var pct = val > 0 ? Math.min(100, Math.round((val / tTotal) * 100)) : 0;
+                var hasValue = val > 0;
+                var statusColor = pct >= 100 ? 'var(--success)' : (hasValue ? 'var(--primary)' : 'var(--gray-400)');
+                var taskStart = t.start || '';
+                var taskEnd = t.end || '';
+                var tDays = 0, taskDaysUsed = 0, taskDaysLeft = 0;
+                if (taskStart && taskEnd) {
+                    var ts = new Date(taskStart);
+                    var te = new Date(taskEnd);
+                    var today = new Date();
+                    tDays = Math.max(1, Math.round((te - ts) / (1000 * 60 * 60 * 24)));
+                    if (today >= ts) taskDaysUsed = Math.min(tDays, Math.round((today - ts) / (1000 * 60 * 60 * 24)));
+                    taskDaysLeft = Math.max(0, tDays - taskDaysUsed);
+                }
+                var dayStatusColor = taskDaysUsed > tDays && pct < 100 && tDays > 0 ? 'var(--danger)' : 'var(--gray-500)';
+                html += '<div class="task-grid-item">' +
+                    '<div class="task-grid-name">' + t.name + '</div>' +
+                    '<div class="task-grid-value" style="color:' + statusColor + ';">' + (hasValue ? val + ' <span style="font-size:0.7rem;font-weight:normal;">/ ' + tTotal + ' ' + (t.unit || 'm') + '</span>' : '-') + '</div>' +
+                    (hasValue ? '<div class="task-grid-value" style="font-size:0.9rem;color:' + statusColor + ';">' + pct + '%</div>' : '<div class="task-grid-value" style="font-size:0.9rem;color:var(--gray-300);">No data</div>') +
+                    (taskStart && taskEnd ? '<div class="task-grid-dates">' + taskStart + ' → ' + taskEnd + '</div>' : '') +
+                    (hasValue && taskStart && taskEnd ? '<div class="task-grid-days" style="color:' + dayStatusColor + ';">' + taskDaysUsed + 'd used | ' + taskDaysLeft + 'd left</div>' : '') +
+                '</div>';
+            });
+            html += '</div>';
+            html += '<div style="display:flex; gap:0.5rem; justify-content:flex-end;">' +
+                '<button class="line-detail-btn" onclick="openLineSummary(\'' + proj.id + '\',\'' + ln + '\')">View Summary</button>' +
+                '<button class="line-detail-btn" onclick="newReportForLine(\'' + proj.id + '\',\'' + ln + '\')">New Report</button>' +
+            '</div>';
+            container.innerHTML = html;
+        }
+
+        function toggleProjectDetail(projectId) {
+            expandedProjectId = (expandedProjectId === projectId) ? null : projectId;
+            updateSummary();
+        }
+
+        function openLineSummary(projectId, lineName) {
+            viewingLineSummary = { projectId: projectId, lineName: lineName };
+            var proj = config.projects.find(function(p) { return p.id === projectId; });
+            if (!proj) return;
+            var lineTaskList = getLineTasks(projectId, lineName);
+            var latestProgress = getLatestLineProgress(proj.name, lineName);
+            var history = getLineReportHistory(proj.name, lineName);
+            document.getElementById('lineSummaryTitle').textContent = proj.name + ' - ' + lineName;
+            var totalPctSum = 0;
+            var validTasks = 0;
+            var completedCount = 0;
+            var tasksHtml = '';
+            lineTaskList.forEach(function(t) {
+                if (!t.name || t.name === 'New Task' || t.name.trim() === '') return;
+                var val = latestProgress[t.id] || 0;
+                var tTotal = t.total || 100;
+                var pct = val > 0 ? Math.min(100, Math.round((val / tTotal) * 100)) : 0;
+                if (val > 0) { totalPctSum += pct; validTasks++; }
+                if (pct >= 100) completedCount++;
+                var taskStart = t.start || '';
+                var taskEnd = t.end || '';
+                var tDays = 0, taskDaysUsed = 0, taskDaysLeft = 0;
+                if (taskStart && taskEnd) {
+                    var ts = new Date(taskStart);
+                    var te = new Date(taskEnd);
+                    var today = new Date();
+                    tDays = Math.max(1, Math.round((te - ts) / (1000 * 60 * 60 * 24)));
+                    if (today >= ts) taskDaysUsed = Math.min(tDays, Math.round((today - ts) / (1000 * 60 * 60 * 24)));
+                    taskDaysLeft = Math.max(0, tDays - taskDaysUsed);
+                }
+                var statusColor = pct >= 100 ? 'var(--success)' : (val > 0 ? 'var(--primary)' : 'var(--gray-400)');
+                var dayStatusColor = taskDaysUsed > tDays && pct < 100 && tDays > 0 ? 'var(--danger)' : 'var(--gray-500)';
+                var behindBadge = isTaskBehindSchedule(t, val) ? '<span class="badge badge-danger" style="margin-left:0.5rem;">Behind Schedule</span>' : '';
+                tasksHtml += '<div class="line-summary-card">' +
+                    '<div class="line-summary-header">' +
+                        '<div><span class="line-summary-title" style="color:' + statusColor + ';">' + t.name + '</span>' + behindBadge + '</div>' +
+                        '<span class="dash-pct" style="font-size:1.25rem;">' + (val > 0 ? pct + '%' : '-') + '</span>' +
+                    '</div>' +
+                    '<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">' +
+                        '<div class="task-bar-bg" style="flex:1;"><div class="task-bar-fill" style="width:' + pct + '%;"></div><div class="task-bar-text">' + (val > 0 ? val + ' / ' + tTotal + ' ' + (t.unit || 'm') : 'No data') + '</div></div>' +
+                    '</div>' +
+                    (taskStart && taskEnd ? '<div class="line-summary-dates">Task Period: ' + taskStart + ' → ' + taskEnd + ' | ' + tDays + ' days total</div>' : '') +
+                    (taskStart && taskEnd ? '<div class="line-summary-dates" style="color:' + dayStatusColor + ';">Days Used: ' + taskDaysUsed + ' | Days Left: ' + taskDaysLeft + '</div>' : '') +
+                '</div>';
+            });
+            var overallLinePct = validTasks > 0 ? Math.round(totalPctSum / validTasks) : 0;
+            var lineResources = 0;
+            var lineResourceCount = 0;
+            history.forEach(function(h) {
+                if (h.resources) {
+                    var res = parseInt(h.resources);
+                    if (!isNaN(res) && res > 0) { lineResources += res; lineResourceCount++; }
+                }
+            });
+            var avgLineResources = lineResourceCount > 0 ? Math.round(lineResources / lineResourceCount) : 0;
+            var summaryHtml = '<div style="display:flex; gap:1rem; margin-bottom:1rem; flex-wrap:wrap;">' +
+                '<div style="flex:1; min-width:120px; background:var(--gray-50); padding:0.75rem; border-radius:8px; text-align:center;">' +
+                    '<div style="font-size:1.5rem; font-weight:800; color:var(--primary);">' + overallLinePct + '%</div>' +
+                    '<div style="font-size:0.75rem; color:var(--gray-500); text-transform:uppercase;">Overall Progress</div>' +
+                '</div>' +
+                '<div style="flex:1; min-width:120px; background:var(--gray-50); padding:0.75rem; border-radius:8px; text-align:center;">' +
+                    '<div style="font-size:1.5rem; font-weight:800; color:var(--gray-800);">' + completedCount + '/' + validTasks + '</div>' +
+                    '<div style="font-size:0.75rem; color:var(--gray-500); text-transform:uppercase;">Tasks Complete</div>' +
+                '</div>' +
+                '<div style="flex:1; min-width:120px; background:var(--gray-50); padding:0.75rem; border-radius:8px; text-align:center;">' +
+                    '<div style="font-size:1.5rem; font-weight:800; color:var(--gray-800);">' + history.length + '</div>' +
+                    '<div style="font-size:0.75rem; color:var(--gray-500); text-transform:uppercase;">Reports</div>' +
+                '</div>' +
+                '<div style="flex:1; min-width:120px; background:var(--gray-50); padding:0.75rem; border-radius:8px; text-align:center;">' +
+                    '<div style="font-size:1.5rem; font-weight:800; color:var(--gray-800);">' + avgLineResources + '</div>' +
+                    '<div style="font-size:0.75rem; color:var(--gray-500); text-transform:uppercase;">Avg Workers</div>' +
+                '</div>' +
+            '</div>';
+            document.getElementById('lineSummaryContent').innerHTML = summaryHtml;
+            document.getElementById('lineTaskDetails').innerHTML = tasksHtml || '<div class="empty-state">No task data yet. Create a report to see progress.</div>';
+            showView('viewLineSummary');
+        }
+
+        function editLineReport() {
+            if (!viewingLineSummary) return;
+            newReportForLine(viewingLineSummary.projectId, viewingLineSummary.lineName);
+        }
+
+        function copyLineSummary() {
+            if (!viewingLineSummary) return;
+            var proj = config.projects.find(function(p) { return p.id === viewingLineSummary.projectId; });
+            if (!proj) return;
+            var text = generateLineSummaryText(proj, viewingLineSummary.lineName);
+            fallbackCopy(text);
+        }
+
+        function shareLineSummary() {
+            if (!viewingLineSummary) return;
+            var proj = config.projects.find(function(p) { return p.id === viewingLineSummary.projectId; });
+            if (!proj) return;
+            var text = generateLineSummaryText(proj, viewingLineSummary.lineName);
+            var encoded = encodeURIComponent(text);
+            var waUrl = 'https://wa.me/?text=' + encoded;
+            var newWindow = window.open(waUrl, '_blank');
+            if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') window.location.href = waUrl;
+            showToast('Opening WhatsApp...', 'success');
+        }
+
+        function generateLineSummaryText(proj, lineName) {
+            var lineTaskList = getLineTasks(proj.id, lineName);
+            var latestProgress = getLatestLineProgress(proj.name, lineName);
+            var text = '*LINE SUMMARY: ' + proj.name + ' - ' + lineName + '*\n\n';
+            text += '*TASK PROGRESS:*\n';
+            lineTaskList.forEach(function(t) {
+                if (!t.name || t.name === 'New Task' || t.name.trim() === '') return;
+                var val = latestProgress[t.id] || 0;
+                var tTotal = t.total || 100;
+                var pct = val > 0 ? Math.min(100, Math.round((val / tTotal) * 100)) : 0;
+                text += '*' + t.name + ':* ' + (val > 0 ? val + '/' + tTotal + ' ' + (t.unit || 'm') + ' (' + pct + '%)' : 'No data') + '\n';
+            });
+            return text;
+        }
+
+        function newReportForLine(projectId, lineName) {
+            startOver();
+            var proj = config.projects.find(function(p) { return p.id === projectId; });
+            if (!proj) return;
+            currentReport.project = proj;
+            currentReport.line = { name: lineName };
+            // Pre-fill resources from last report for this line
+            var history = getLineReportHistory(proj.name, lineName);
+            if (history.length > 0 && history[0].resources) {
+                document.getElementById('resourcesCount').value = history[0].resources;
+            }
+            showView('viewReportForm');
+            renderLines();
+            selectLine(lineName);
+            document.getElementById('step-worker').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function renderRecentReports() {
+            var container = document.getElementById('recentReports');
+            var allReports = getAllReports();
+            if (allReports.length === 0) {
+                container.innerHTML = '<div style="font-size:0.8125rem;color:var(--gray-400);text-align:center;padding:0.5rem;">No reports yet. Start your first one!</div>';
+                return;
+            }
+            var seen = new Set();
+            var recent = [];
+            allReports.slice().reverse().forEach(function(r) {
+                var key = (r.project || '') + '|' + (r.line || '');
+                if (!seen.has(key) && r.project && r.line) { seen.add(key); recent.push(r); }
+            });
+            var html = '<div style="font-size:0.75rem;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">Recent Lines</div>';
+            recent.slice(0, 5).forEach(function(r) {
+                var dateStr = r.date ? r.date : new Date(r.timestamp).toLocaleDateString();
+                html += '<div class="recent-report-item" data-project="' + (r.project || '') + '" data-line="' + (r.line || '') + '">' +
+                    '<div><span class="info">' + r.project + ' - ' + r.line + '</span><br><span class="date">' + dateStr + ' | ' + (r.worker || 'No name') + '</span></div>' +
+                    '<span style="color:var(--primary);font-weight:700;font-size:0.875rem;">&gt;</span></div>';
+            });
+            container.innerHTML = html;
+            container.querySelectorAll('.recent-report-item').forEach(function(item) {
+                item.addEventListener('click', function() {
+                    var projName = this.getAttribute('data-project');
+                    var lineName = this.getAttribute('data-line');
+                    var proj = config.projects.find(function(p) { return p.name === projName; });
+                    if (proj) {
+                        startOver();
+                        currentReport.project = proj;
+                        currentReport.line = { name: lineName };
+                        showView('viewReportForm');
+                        renderLines();
+                        selectLine(lineName);
+                        document.getElementById('step-worker').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            });
+        }
+
+        function continueLastReport() {
+            var allReports = getAllReports();
+            if (allReports.length === 0) { showToast('No previous reports found', 'error'); return; }
+            var last = allReports[allReports.length - 1];
+            var proj = config.projects.find(function(p) { return p.name === last.project; });
+            if (!proj) { showToast('Project not found', 'error'); return; }
+            startOver();
+            currentReport.project = proj;
+            currentReport.line = { name: last.line };
+            showView('viewReportForm');
+            renderLines();
+            selectLine(last.line);
+            if (last.worker) document.getElementById('workerName').value = last.worker;
+            if (last.resources) document.getElementById('resourcesCount').value = last.resources;
+            if (last.shift) document.getElementById('shiftSelect').value = last.shift;
+            if (last.tasks && last.line) currentReport.tasks[last.line] = JSON.parse(JSON.stringify(last.tasks));
+            document.getElementById('step-worker').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            showToast('Continuing last report: ' + last.project + ' - ' + last.line);
+        }
+
+        function renderProjects() {
+            var grid = document.getElementById('projectGrid');
+            grid.innerHTML = '';
+            config.projects.forEach(function(p) {
+                var card = document.createElement('div');
+                card.className = 'project-card';
+                card.setAttribute('data-project', p.id);
+                card.innerHTML = '<div class="project-card-name">' + p.name + '</div>';
+                card.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); selectProject(p.id); });
+                grid.appendChild(card);
+            });
+        }
+
+        function renderLines() {
+            var container = document.getElementById('lineSelector');
+            container.innerHTML = '';
+            if (!currentReport.project) return;
+            var plines = getProjectLines(currentReport.project.id);
+            plines.forEach(function(ln) {
+                var btn = document.createElement('button');
+                btn.className = 'line-btn';
+                btn.textContent = ln;
+                btn.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); selectLine(ln); });
+                container.appendChild(btn);
+            });
+        }
+
+        function selectProject(id) {
+            currentReport.project = config.projects.find(function(p) { return p.id === id; });
+            document.querySelectorAll('.project-card').forEach(function(el) { el.classList.toggle('selected', el.getAttribute('data-project') === id); });
+            renderLines();
+            showStep('step-line');
+            showToast('Project: ' + currentReport.project.name);
+        }
+
+        function selectLine(name) {
+            currentReport.line = { name: name };
+            if (!currentReport.tasks[name]) currentReport.tasks[name] = {};
+            document.querySelectorAll('.line-btn').forEach(function(el) { el.classList.toggle('selected', el.textContent === name); });
+            showStep('step-worker'); showStep('step-tasks'); showStep('step-notes'); showStep('step-photos'); showStep('step-generate');
+            showExportBar(); renderTasks(); updatePreview(); showToast('Line: ' + name);
+        }
+
+        function showStep(id) { document.getElementById(id).classList.remove('hidden'); }
+        function showExportBar() { document.getElementById('exportBar').style.display = 'flex'; }
+        function hideExportBar() { document.getElementById('exportBar').style.display = 'none'; }
+
+        function renderTasks() {
+            var list = document.getElementById('taskList');
+            list.innerHTML = '';
+            var latestProgress = {};
+            if (currentReport.project && currentReport.line) {
+                latestProgress = getLatestLineProgress(currentReport.project.name, currentReport.line.name);
+            }
+            // Merge latest saved data into currentReport so the bar reflects previous data
+            if (currentReport.line && currentReport.project) {
+                if (!currentReport.tasks[currentReport.line.name]) {
+                    currentReport.tasks[currentReport.line.name] = {};
+                }
+                Object.keys(latestProgress).forEach(function(tid) {
+                    if (!currentReport.tasks[currentReport.line.name][tid]) {
+                        currentReport.tasks[currentReport.line.name][tid] = latestProgress[tid];
+                    }
+                });
+            }
+            var lineTasks = currentReport.line && currentReport.tasks[currentReport.line.name] || {};
+            var taskList = currentReport.project && currentReport.line ? getLineTasks(currentReport.project.id, currentReport.line.name) : config.tasks;
+            taskList.forEach(function(t) {
+                if (!t.name || t.name === 'New Task' || t.name.trim() === '') return;
+                var newVal = lineTasks[t.id] || latestProgress[t.id] || 0;
+                var total = t.total || 100;
+                var pct = newVal > 0 ? Math.min(100, Math.round((newVal / total) * 100)) : 0;
+                var currentVal = latestProgress[t.id] || 0;
+                var taskStart = t.start || '';
+                var taskEnd = t.end || '';
+                var taskDaysUsed = 0, taskDaysTotal = 0, taskDaysLeft = 0;
+                if (taskStart && taskEnd) {
+                    var ts = new Date(taskStart);
+                    var te = new Date(taskEnd);
+                    var today = new Date();
+                    taskDaysTotal = Math.max(1, Math.round((te - ts) / (1000 * 60 * 60 * 24)));
+                    if (today >= ts) taskDaysUsed = Math.min(taskDaysTotal, Math.round((today - ts) / (1000 * 60 * 60 * 24)));
+                    taskDaysLeft = Math.max(0, taskDaysTotal - taskDaysUsed);
+                }
+                var taskDateRange = taskStart && taskEnd ? '<span style="font-size:0.75rem; color:var(--gray-400);">' + taskStart + ' → ' + taskEnd + '</span>' : '<span style="font-size:0.75rem; color:var(--gray-400);">No dates set</span>';
+                var item = document.createElement('div');
+                item.className = 'task-item';
+                var historyHtml = '';
+                if (currentReport.project && currentReport.line) {
+                    var history = getLineReportHistory(currentReport.project.name, currentReport.line.name);
+                    if (history.length > 0) {
+                        historyHtml = '<div class="task-history"><div class="task-history-title">Previous Reports</div>';
+                        history.slice(0, 3).forEach(function(h) {
+                            var hVal = h.tasks && h.tasks[t.id] ? h.tasks[t.id] : 0;
+                            var hPct = hVal > 0 ? Math.min(100, Math.round((hVal / total) * 100)) : 0;
+                            if (hVal > 0) {
+                                var hDate = h.date ? h.date : new Date(h.timestamp).toLocaleDateString();
+                                historyHtml += '<div class="task-history-item"><span>' + hDate + '</span><span>' + hVal + ' ' + (t.unit || 'm') + ' (' + hPct + '%)</span></div>';
+                            }
+                        });
+                        historyHtml += '</div>';
+                    }
+                }
+                item.innerHTML =
+                    '<div class="task-header">' +
+                        '<span class="task-name">' + t.name + ' <span style="font-size:0.8rem; color:var(--gray-400);">[Target: ' + total + ' ' + (t.unit || 'm') + ']</span></span>' +
+                        '<span class="task-value" id="val-' + t.id + '">' + (newVal > 0 ? pct + '%' : '-') + '</span>' +
+                    '</div>' +
+                    '<div class="task-input-row" style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">' +
+                        '<input type="number" class="task-num-input" id="num-' + t.id + '" min="0" max="' + total + '" value="' + (newVal || '') + '" placeholder="Qty" style="width:90px; padding:0.5rem; border:2px solid var(--gray-200); border-radius:8px; text-align:center; background:var(--gray-50);">' +
+                        '<span style="font-weight:600; color:var(--gray-500); font-size:0.875rem;">' + (t.unit || 'm') + '</span>' +
+                        '<div class="task-bar-bg" style="flex:1; height:24px; background:var(--gray-200); border-radius:12px; position:relative; overflow:hidden;">' +
+                            '<div class="task-bar-fill ' + (pct >= 100 ? 'complete' : (pct >= 50 ? 'high' : (pct >= 20 ? 'medium' : 'low'))) + '" id="bar-' + t.id + '" style="height:100%; width:' + pct + '%;"></div>' +
+                            '<div class="task-bar-text" id="bartxt-' + t.id + '" style="position:absolute; width:100%; text-align:center; top:0; left:0; line-height:24px; font-size:0.75rem; font-weight:700;">' + (newVal > 0 ? newVal + ' / ' + total + ' ' + (t.unit || 'm') : 'Enter Qty') + '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="task-timing-info" style="flex-direction:column; align-items:flex-start; gap:0.25rem;">' +
+                        '<div style="display:flex; justify-content:space-between; width:100%;">' + taskDateRange + '</div>' +
+                        '<div style="display:flex; justify-content:space-between; width:100%;">' +
+                            '<span>Days Used: <strong>' + taskDaysUsed + '/' + taskDaysTotal + '</strong></span>' +
+                            '<span>Left: <strong>' + taskDaysLeft + ' days</strong></span>' +
+                        '</div>' +
+                    '</div>' +
+                    historyHtml;
+                list.appendChild(item);
+                var numInput = document.getElementById('num-' + t.id);
+                numInput.addEventListener('input', function() {
+                    var val = parseInt(this.value) || 0;
+                    if (val < 0) val = 0; if (val > total) val = total;
+                    updateTask(t.id, val);
+                    var newPct = val > 0 ? Math.min(100, Math.round((val / total) * 100)) : 0;
+                    document.getElementById('val-' + t.id).textContent = val > 0 ? newPct + '%' : '-';
+                    var barEl = document.getElementById('bar-' + t.id);
+                    barEl.style.width = newPct + '%';
+                    barEl.classList.remove('low', 'medium', 'high', 'complete');
+                    if (newPct >= 100) barEl.classList.add('complete');
+                    else if (newPct >= 50) barEl.classList.add('high');
+                    else if (newPct >= 20) barEl.classList.add('medium');
+                    else barEl.classList.add('low');
+                    document.getElementById('bartxt-' + t.id).textContent = val > 0 ? val + ' / ' + total + ' ' + (t.unit || 'm') : 'Enter Qty';
+                    updatePreview();
+                });
+            });
+        }
+
+        function updateTask(id, value) {
+            if (!currentReport.line) return;
+            if (!currentReport.tasks[currentReport.line.name]) currentReport.tasks[currentReport.line.name] = {};
+            currentReport.tasks[currentReport.line.name][id] = parseInt(value);
+            updatePreview();
+        }
+
+        function openCamera() {
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment';
+            input.style.cssText = 'position:absolute;left:-9999px;top:-9999px;opacity:0;width:1px;height:1px;';
+            document.body.appendChild(input);
+            input.addEventListener('change', function() {
+                if (this.files && this.files[0]) handlePhotos(this.files);
+                setTimeout(function() { if (input.parentNode) document.body.removeChild(input); }, 2000);
+            });
+            input.click();
+        }
+
+        function handlePhotos(files) {
+            Array.from(files).forEach(function(file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    currentReport.photos.push({ src: e.target.result, name: file.name });
+                    renderPhotos();
+                    updatePreview();
+                    // Also upload to Firebase if available
+                    if (firebaseEnabled) {
+                        uploadPhotoToFirebase(file).then(function(url) {
+                            if (url) {
+                                // Update the photo entry with Firebase URL
+                                for (var i = 0; i < currentReport.photos.length; i++) {
+                                    if (currentReport.photos[i].src === e.target.result) {
+                                        currentReport.photos[i].firebaseUrl = url;
+                                        break;
+                                    }
+                                }
+                            }
+                        });
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function renderPhotos() {
+            var grid = document.getElementById('photoGrid');
+            grid.innerHTML = '';
+            currentReport.photos.forEach(function(p, i) {
+                var div = document.createElement('div');
+                div.className = 'photo-item';
+                div.innerHTML = '<img src="' + p.src + '" alt="' + p.name + '"><button class="photo-remove" data-idx="' + i + '">x</button>';
+                grid.appendChild(div);
+            });
+            grid.querySelectorAll('.photo-remove').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault(); e.stopPropagation();
+                    removePhoto(parseInt(this.getAttribute('data-idx')));
+                });
+            });
+        }
+
+        function removePhoto(idx) {
+            currentReport.photos.splice(idx, 1);
+            renderPhotos();
+            updatePreview();
+        }
+
+        function generateReportText() {
+            var worker = document.getElementById('workerName').value || 'Not specified';
+            var resources = document.getElementById('resourcesCount').value || '0';
+            var shift = document.getElementById('shiftSelect').value;
+            var achievements = document.getElementById('achievements').value;
+            var issues = document.getElementById('issues').value;
+            var tomorrow = document.getElementById('tomorrowPlan') ? document.getElementById('tomorrowPlan').value : '';
+            var now = new Date();
+            var date = now.getDate().toString().padStart(2, '0') + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + '/' + now.getFullYear();
+            var projName = currentReport.project ? currentReport.project.name : 'Unknown';
+            var lineName = currentReport.line ? currentReport.line.name : 'Unknown';
+            var lineTasks = currentReport.line && currentReport.tasks[currentReport.line.name] || {};
+            var totalPctSum = 0;
+            var validTasks = 0;
+            var lineTaskList = currentReport.project && currentReport.line ? getLineTasks(currentReport.project.id, currentReport.line.name) : config.tasks;
+            lineTaskList.forEach(function(t) {
+                if (!t.name || t.name === 'New Task' || t.name.trim() === '') return;
+                var val = lineTasks[t.id] || 0;
+                var total = t.total || 100;
+                var pct = val > 0 ? Math.min(100, Math.round((val / total) * 100)) : 0;
+                if (val > 0) { totalPctSum += pct; validTasks++; }
+            });
+            var avgPct = validTasks > 0 ? Math.round(totalPctSum / validTasks) : 0;
+            var text = '*DAILY PROGRESS REPORT*\n\n';
+            text += '*Date:* ' + date + '\n';
+            text += '*Project:* ' + projName + '\n';
+            text += '*Line:* ' + lineName + '\n';
+            text += '*Team Lead:* ' + worker + '\n';
+            text += '*Shift:* ' + shift + '\n';
+            text += '*Resources:* ' + resources + '\n\n';
+            text += '*TASK PROGRESS:*\n\n';
+            lineTaskList.forEach(function(t) {
+                if (!t.name || t.name === 'New Task' || t.name.trim() === '') return;
+                var val = lineTasks[t.id] || 0;
+                var total = t.total || 100;
+                var pct = val > 0 ? Math.min(100, Math.round((val / total) * 100)) : 0;
+                var unit = t.unit || 'm';
+                var remaining = total - val;
+                var filled = Math.floor(pct / 10);
+                var empty = 10 - filled;
+                var bar = '';
+                for (var i = 0; i < filled; i++) bar += '▓';
+                for (var i = 0; i < empty; i++) bar += '░';
+                var daysInfo = '';
+                if (t.start && t.end) {
+                    var startDate = new Date(t.start);
+                    var endDate = new Date(t.end);
+                    var today = new Date();
+                    today.setHours(0,0,0,0);
+                    endDate.setHours(0,0,0,0);
+                    var totalDays = Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)));
+                    var daysLeft = Math.max(0, Math.round((endDate - today) / (1000 * 60 * 60 * 24)));
+                    daysInfo = '\n(' + daysLeft + ' days left) (' + totalDays + ' Allocated days)';
+                }
+                text += '*' + t.name + ':* ' + pct + '% (' + remaining + ' ' + unit + ' left)( total ' + total + ' ' + unit + ') \n' + bar + daysInfo + '\n\n';
+            });
+            if (achievements) text += '*ACHIEVEMENTS:*\n' + achievements + '\n\n';
+            if (issues) text += '*ISSUES:*\n' + issues + '\n\n';
+            if (tomorrow) text += '*TOMORROW\'S PLAN:*\n' + tomorrow + '\n\n';
+            if (currentReport.photos.length > 0) text += '*PHOTOS ATTACHED:* ' + currentReport.photos.length;
+            return text;
+        }
+
+        function updatePreview() {
+            var content = document.getElementById('previewContent');
+            var text = generateReportText().replace(/\n/g, '<br>');
+            content.innerHTML = text;
+            document.getElementById('previewTime').textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        }
+
+        function shareToWhatsApp() {
+            saveReportToStorage();
+            var text = generateReportText();
+            var encoded = encodeURIComponent(text);
+            var waUrl = 'https://wa.me/?text=' + encoded;
+            var newWindow = window.open(waUrl, '_blank');
+            if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') window.location.href = waUrl;
+            showToast('Opening WhatsApp...', 'success');
+        }
+
+        function saveAndReset() {
+            saveReportToStorage();
+            showToast('Report saved!', 'success');
+            startOver();
+            backToDashboard();
+        }
+
+        async function copyReport() {
+            saveReportToStorage();
+            var text = generateReportText();
+            var items = [];
+            if (currentReport.photos.length > 0) {
+                try {
+                    for (var i = 0; i < currentReport.photos.length; i++) {
+                        var p = currentReport.photos[i];
+                        var blob = await dataURLtoBlob(p.src);
+                        items.push(new ClipboardItem({ 'image/png': blob }));
+                    }
+                } catch(e) {}
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    showToast('Report text copied!', 'success');
+                } catch(e) { fallbackCopy(text); }
+            } else { fallbackCopy(text); }
+            if (items.length > 0 && navigator.clipboard && navigator.clipboard.write) {
+                try {
+                    await navigator.clipboard.write(items);
+                    showToast('Report + photos copied!', 'success');
+                } catch(e) {}
+            }
+        }
+
+        function dataURLtoBlob(dataURL) {
+            return new Promise(function(resolve) {
+                var arr = dataURL.split(',');
+                var mime = arr[0].match(/:(.*?);/)[1];
+                var bstr = atob(arr[1]);
+                var n = bstr.length;
+                var u8arr = new Uint8Array(n);
+                for (var i = 0; i < n; i++) u8arr[i] = bstr.charCodeAt(i);
+                resolve(new Blob([u8arr], { type: mime }));
+            });
+        }
+
+        function fallbackCopy(text) {
+            var textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.top = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                var success = document.execCommand('copy');
+                if (success) showToast('Copied to clipboard!', 'success');
+                else showToast('Copy failed', 'error');
+            } catch (err) { showToast('Copy failed', 'error'); }
+            document.body.removeChild(textarea);
+        }
+
+        function startOver() {
+            currentReport = { project: null, line: null, worker: '', resources: '', shift: 'Day', tasks: {}, notes: {}, photos: [] };
+            document.getElementById('workerName').value = '';
+            document.getElementById('resourcesCount').value = '';
+            document.getElementById('shiftSelect').value = 'Day';
+            document.getElementById('achievements').value = '';
+            document.getElementById('issues').value = '';
+            document.getElementById('tomorrowPlan').value = '';
+            document.getElementById('photoGrid').innerHTML = '';
+            ['step-line','step-worker','step-tasks','step-notes','step-photos','step-generate'].forEach(function(id) {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.querySelectorAll('.project-card').forEach(function(el) { el.classList.remove('selected'); });
+            document.querySelectorAll('.line-btn').forEach(function(el) { el.classList.remove('selected'); });
+            hideExportBar();
+        }
+
+        function showToast(message, type) {
+            var existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            var toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            if (type === 'error') toast.style.background = 'var(--danger)';
+            else if (type === 'success') toast.style.background = 'var(--success)';
+            document.body.appendChild(toast);
+            setTimeout(function() { toast.remove(); }, 3000);
+        }
+
+        function getTaskStatusColor(task, progressVal) {
+            if (!task.start || !task.end) return { color: 'var(--gray-300)', status: 'nodates' };
+            var today = new Date();
+            today.setHours(0,0,0,0);
+            var start = new Date(task.start);
+            start.setHours(0,0,0,0);
+            var end = new Date(task.end);
+            end.setHours(0,0,0,0);
+            var total = task.total || 100;
+            var progress = progressVal || 0;
+            var pct = progress > 0 ? Math.min(100, Math.round((progress / total) * 100)) : 0;
+
+            var totalDays = Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+            var daysElapsed = today >= start ? Math.max(0, Math.round((today - start) / (1000 * 60 * 60 * 24))) : 0;
+            var daysLeft = Math.max(0, Math.round((end - today) / (1000 * 60 * 60 * 24)));
+            var expectedPct = Math.min(100, Math.round((daysElapsed / totalDays) * 100));
+
+            if (today > end) {
+                return pct >= 100 ? { color: 'var(--success)', status: 'complete' } : { color: 'var(--danger)', status: 'behind' };
+            }
+            if (daysLeft <= 1 && pct < 90) {
+                return { color: 'var(--warning)', status: 'warning' };
+            }
+            if (pct >= expectedPct) {
+                return { color: 'var(--success)', status: 'ontime' };
+            }
+            return { color: 'var(--primary)', status: 'progress' };
+        }
+
+        function renderSummaryMatrix() {
+            var container = document.getElementById('summaryMatrixContainer');
+            if (!container) return;
+
+            // Clear container and show loading
+            container.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--gray-400);">Loading matrix...</div>';
+
+            var columns = [];
+            config.projects.forEach(function(p) {
+                var plines = getProjectLines(p.id);
+                plines.forEach(function(ln) {
+                    columns.push({ project: p, line: ln, key: p.name + ' - ' + ln });
+                });
+            });
+
+            var rowTasks = [];
+            var seenTaskNames = {};
+            config.projects.forEach(function(p) {
+                var plines = getProjectLines(p.id);
+                plines.forEach(function(ln) {
+                    var tasks = getLineTasks(p.id, ln);
+                    tasks.forEach(function(t) {
+                        if (t.name && t.name !== 'New Task' && t.name.trim() !== '' && !seenTaskNames[t.name]) {
+                            seenTaskNames[t.name] = true;
+                            rowTasks.push(t.name);
+                        }
+                    });
+                });
+            });
+
+            if (columns.length === 0) {
+                container.innerHTML = '<div class="empty-state">No projects or lines configured.</div>';
+                return;
+            }
+            if (rowTasks.length === 0) {
+                container.innerHTML = '<div class="empty-state">No tasks configured.</div>';
+                return;
+            }
+
+            var tableHtml = '<table class="dash-table" style="min-width:600px;"><thead><tr>';
+            tableHtml += '<th style="min-width:100px;position:sticky;left:0;background:var(--gray-100);z-index:1;">Task</th>';
+            columns.forEach(function(col) {
+                tableHtml += '<th style="min-width:100px;text-align:center;white-space:nowrap;">' + col.key + '</th>';
+            });
+            tableHtml += '</tr></thead><tbody>';
+
+            rowTasks.forEach(function(taskName) {
+                tableHtml += '<tr>';
+                tableHtml += '<td style="font-weight:600;position:sticky;left:0;background:white;z-index:1;">' + taskName + '</td>';
+                columns.forEach(function(col) {
+                    var tasks = getLineTasks(col.project.id, col.line);
+                    var task = tasks.find(function(t) { return t.name === taskName; });
+                    // Use the SAME function as the dashboard for consistency
+                    var latestProgress = getLatestLineProgress(col.project.name, col.line);
+                    var val = task && latestProgress[task.id] !== undefined ? latestProgress[task.id] : 0;
+                    var total = task ? (task.total || 100) : 100;
+                    var pct = val > 0 ? Math.min(100, Math.round((val / total) * 100)) : 0;
+                    var status = task ? getTaskStatusColor(task, val) : { color: 'var(--gray-300)', status: 'nodates' };
+
+                    var deadline = '';
+                    if (task && task.end) {
+                        var d = new Date(task.end);
+                        var dateStr = d.getDate() + '/' + (d.getMonth()+1);
+                        deadline = '<div style="font-size:0.75rem;color:var(--gray-500);margin-top:0.25rem;font-weight:600;">' + dateStr + '</div>';
+                    }
+
+                    var cellContent = val > 0 ? pct + '%' : 'N/A';
+                    tableHtml += '<td style="text-align:center;padding:0.75rem 0.5rem;color:' + status.color + ';">' +
+                        '<div style="font-weight:700;font-size:1rem;">' + cellContent + '</div>' + deadline + '</td>';
+                });
+                tableHtml += '</tr>';
+            });
+            tableHtml += '</tbody></table>';
+            container.innerHTML = tableHtml;
+        }
+
+        function exportSummaryPDF() {
+            var allReports = getAllReports();
+            var latestValues = {};
+            allReports.forEach(function(r) {
+                var pn = r.project || 'Unknown';
+                var ln = r.line || 'Unknown';
+                if (!latestValues[pn]) latestValues[pn] = {};
+                if (!latestValues[pn][ln]) latestValues[pn][ln] = {};
+                if (r.tasks) {
+                    Object.keys(r.tasks).forEach(function(tid) {
+                        var val = parseInt(r.tasks[tid]) || 0;
+                        if (!latestValues[pn][ln][tid] || val > latestValues[pn][ln][tid])
+                            latestValues[pn][ln][tid] = val;
+                    });
+                }
+            });
+
+            var now = new Date();
+            var pdfContent = document.createElement('div');
+            pdfContent.style.cssText = 'font-family:Arial,Helvetica,sans-serif;padding:30px;color:#1f2937;max-width:900px;margin:0 auto;background:#fff;';
+
+            var headerHtml = '<div style="border-bottom:3px solid #128C7E;padding-bottom:15px;margin-bottom:25px;">' +
+                '<h1 style="color:#128C7E;font-size:28px;margin:0 0 5px 0;font-weight:700;">Project Progress Summary</h1>' +
+                '<p style="color:#6b7280;font-size:13px;margin:0;">Generated: ' + now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + '</p>' +
+                '</div>';
+            pdfContent.innerHTML = headerHtml;
+
+            config.projects.forEach(function(p) {
+                var plines = getProjectLines(p.id);
+                if (plines.length === 0) return;
+
+                var section = document.createElement('div');
+                section.style.cssText = 'margin-bottom:30px;';
+
+                var projHeader = '<h2 style="color:#374151;font-size:18px;margin:20px 0 12px 0;padding-bottom:6px;border-bottom:2px solid #25D366;font-weight:700;">' + p.name + '</h2>';
+
+                var tableHtml = '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:10px;">' +
+                    '<thead><tr style="background:#128C7E;color:white;">' +
+                    '<th style="padding:10px 8px;text-align:left;border:1px solid #0d6b63;font-weight:600;">Task</th>';
+                plines.forEach(function(ln) {
+                    tableHtml += '<th style="padding:10px 8px;text-align:center;border:1px solid #0d6b63;font-weight:600;">' + ln + '</th>';
+                });
+                tableHtml += '</tr></thead><tbody>';
+
+                var tasks = getLineTasks(p.id, plines[0]);
+                var rowCount = 0;
+                tasks.forEach(function(t) {
+                    if (!t.name || t.name === 'New Task' || t.name.trim() === '') return;
+                    var bg = rowCount % 2 === 0 ? '#f9fafb' : '#ffffff';
+                    tableHtml += '<tr style="background:' + bg + ';">' +
+                        '<td style="padding:8px;border:1px solid #d1d5db;font-weight:600;color:#374151;">' + t.name + '</td>';
+                    plines.forEach(function(ln) {
+                        var lineTasks = getLineTasks(p.id, ln);
+                        var task = lineTasks.find(function(lt) { return lt.name === t.name; });
+                        var latestProgress = getLatestLineProgress(p.name, ln);
+                        var val = task && latestProgress[task.id] !== undefined ? latestProgress[task.id] : 0;
+                        var total = task ? (task.total || 100) : 100;
+                        var pct = val > 0 ? Math.min(100, Math.round((val / total) * 100)) : 0;
+
+                        var statusColor = pct >= 100 ? '#10b981' : (pct > 0 ? '#25D366' : '#9ca3af');
+                        var statusText = pct >= 100 ? 'Complete' : (pct > 0 ? pct + '%' : 'N/A');
+                        var barHtml = pct > 0 ? '<div style="width:100%;height:6px;background:#e5e7eb;border-radius:3px;margin-top:4px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + statusColor + ';border-radius:3px;"></div></div>' : '';
+
+                        var dateStr = '';
+                        if (task && task.end) {
+                            var d = new Date(task.end);
+                            dateStr = '<div style="font-size:10px;color:#9ca3af;margin-top:3px;">Due: ' + d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear() + '</div>';
+                        }
+
+                        tableHtml += '<td style="padding:8px;border:1px solid #d1d5db;text-align:center;">' +
+                            '<div style="font-weight:700;color:' + statusColor + ';font-size:13px;">' + statusText + '</div>' + barHtml + dateStr + '</td>';
+                    });
+                    tableHtml += '</tr>';
+                    rowCount++;
+                });
+                tableHtml += '</tbody></table>';
+
+                section.innerHTML = projHeader + tableHtml;
+                pdfContent.appendChild(section);
+            });
+
+            var opt = {
+                margin: [0.5, 0.5, 0.5, 0.5],
+                filename: 'Project_Summary_' + now.toISOString().split('T')[0] + '.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+            };
+
+            showToast('Generating PDF...', 'success');
+            html2pdf().set(opt).from(pdfContent).save().then(function() {
+                showToast('PDF downloaded!', 'success');
+            }).catch(function(err) {
+                showToast('PDF generation failed: ' + err.message, 'error');
+            });
+        }
+
+        function exportLinePDF() {
+            if (!viewingLineSummary) return;
+            var proj = config.projects.find(function(p) { return p.id === viewingLineSummary.projectId; });
+            if (!proj) return;
+            var lineName = viewingLineSummary.lineName;
+            var lineTaskList = getLineTasks(proj.id, lineName);
+            var latestProgress = getLatestLineProgress(proj.name, lineName);
+            var history = getLineReportHistory(proj.name, lineName);
+
+            var now = new Date();
+            var pdfContent = document.createElement('div');
+            pdfContent.style.cssText = 'font-family:Arial,Helvetica,sans-serif;padding:30px;color:#1f2937;max-width:800px;margin:0 auto;background:#fff;';
+
+            var totalPctSum = 0;
+            var validTasks = 0;
+            var completedCount = 0;
+            lineTaskList.forEach(function(t) {
+                if (!t.name || t.name === 'New Task' || t.name.trim() === '') return;
+                var val = latestProgress[t.id] || 0;
+                var tTotal = t.total || 100;
+                var pct = val > 0 ? Math.min(100, Math.round((val / tTotal) * 100)) : 0;
+                if (val > 0) { totalPctSum += pct; validTasks++; }
+                if (pct >= 100) completedCount++;
+            });
+            var overallLinePct = validTasks > 0 ? Math.round(totalPctSum / validTasks) : 0;
+
+            var headerHtml = '<div style="border-bottom:3px solid #128C7E;padding-bottom:15px;margin-bottom:25px;">' +
+                '<h1 style="color:#128C7E;font-size:28px;margin:0 0 5px 0;font-weight:700;">' + proj.name + ' - ' + lineName + '</h1>' +
+                '<p style="color:#6b7280;font-size:13px;margin:0;">Line Progress Summary &bull; Generated: ' + now.toLocaleDateString('en-GB') + '</p>' +
+                '</div>';
+
+            var lineResources = 0, lineResCount = 0;
+            history.forEach(function(h) {
+                if (h.resources) { var res = parseInt(h.resources); if (!isNaN(res) && res > 0) { lineResources += res; lineResCount++; } }
+            });
+            var avgLineRes = lineResCount > 0 ? Math.round(lineResources / lineResCount) : 0;
+            var statsHtml = '<div style="display:flex;gap:20px;margin-bottom:25px;">' +
+                '<div style="flex:1;background:#f0fdf4;padding:15px;border-radius:8px;text-align:center;border:1px solid #bbf7d0;">' +
+                '<div style="font-size:32px;font-weight:800;color:#128C7E;">' + overallLinePct + '%</div>' +
+                '<div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Overall Progress</div></div>' +
+                '<div style="flex:1;background:#f9fafb;padding:15px;border-radius:8px;text-align:center;border:1px solid #e5e7eb;">' +
+                '<div style="font-size:32px;font-weight:800;color:#374151;">' + completedCount + '/' + validTasks + '</div>' +
+                '<div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Tasks Complete</div></div>' +
+                '<div style="flex:1;background:#f9fafb;padding:15px;border-radius:8px;text-align:center;border:1px solid #e5e7eb;">' +
+                '<div style="font-size:32px;font-weight:800;color:#374151;">' + history.length + '</div>' +
+                '<div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Total Reports</div></div>' +
+                '<div style="flex:1;background:#f9fafb;padding:15px;border-radius:8px;text-align:center;border:1px solid #e5e7eb;">' +
+                '<div style="font-size:32px;font-weight:800;color:#374151;">' + avgLineRes + '</div>' +
+                '<div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Avg Workers</div></div>' +
+                '</div>';
+
+            pdfContent.innerHTML = headerHtml + statsHtml;
+
+            var tableHtml = '<h2 style="color:#374151;font-size:16px;margin:20px 0 10px 0;font-weight:700;">Task Details</h2>' +
+                '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+                '<thead><tr style="background:#128C7E;color:white;">' +
+                '<th style="padding:10px 8px;text-align:left;border:1px solid #0d6b63;font-weight:600;">Task</th>' +
+                '<th style="padding:10px 8px;text-align:center;border:1px solid #0d6b63;font-weight:600;width:120px;">Progress</th>' +
+                '<th style="padding:10px 8px;text-align:center;border:1px solid #0d6b63;font-weight:600;">Quantity</th>' +
+                '<th style="padding:10px 8px;text-align:center;border:1px solid #0d6b63;font-weight:600;">Status</th>' +
+                '<th style="padding:10px 8px;text-align:center;border:1px solid #0d6b63;font-weight:600;">Deadline</th>' +
+                '</tr></thead><tbody>';
+
+            var rowCount = 0;
+            lineTaskList.forEach(function(t) {
+                if (!t.name || t.name === 'New Task' || t.name.trim() === '') return;
+                var val = latestProgress[t.id] || 0;
+                var tTotal = t.total || 100;
+                var pct = val > 0 ? Math.min(100, Math.round((val / tTotal) * 100)) : 0;
+                var statusColor = pct >= 100 ? '#10b981' : (val > 0 ? '#25D366' : '#9ca3af');
+                var statusText = pct >= 100 ? 'Complete' : (val > 0 ? 'In Progress' : 'Not Started');
+                var deadline = t.end ? new Date(t.end).toLocaleDateString('en-GB') : 'Not set';
+                var bg = rowCount % 2 === 0 ? '#f9fafb' : '#ffffff';
+                var barHtml = pct > 0 ? '<div style="width:100%;height:8px;background:#e5e7eb;border-radius:4px;margin-top:4px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + statusColor + ';border-radius:4px;"></div></div><div style="font-size:11px;color:#6b7280;margin-top:2px;">' + pct + '%</div>' : '<div style="font-size:11px;color:#9ca3af;margin-top:2px;">No data</div>';
+
+                tableHtml += '<tr style="background:' + bg + ';">' +
+                    '<td style="padding:8px;border:1px solid #d1d5db;font-weight:600;color:#374151;">' + t.name + '</td>' +
+                    '<td style="padding:8px;border:1px solid #d1d5db;text-align:center;">' + barHtml + '</td>' +
+                    '<td style="padding:8px;border:1px solid #d1d5db;text-align:center;font-weight:600;">' + (val > 0 ? val + ' / ' + tTotal + ' ' + (t.unit || 'm') : '-') + '</td>' +
+                    '<td style="padding:8px;border:1px solid #d1d5db;text-align:center;"><span style="color:' + statusColor + ';font-weight:700;">' + statusText + '</span></td>' +
+                    '<td style="padding:8px;border:1px solid #d1d5db;text-align:center;color:#6b7280;">' + deadline + '</td>' +
+                    '</tr>';
+                rowCount++;
+            });
+            tableHtml += '</tbody></table>';
+            pdfContent.innerHTML += tableHtml;
+
+            if (history.length > 0) {
+                var historyHtml = '<h2 style="color:#374151;font-size:16px;margin:25px 0 10px 0;font-weight:700;">Report History</h2>' +
+                    '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+                    '<thead><tr style="background:#128C7E;color:white;">' +
+                    '<th style="padding:10px 8px;text-align:left;border:1px solid #0d6b63;font-weight:600;">Date</th>' +
+                    '<th style="padding:10px 8px;text-align:left;border:1px solid #0d6b63;font-weight:600;">Worker</th>' +
+                    '<th style="padding:10px 8px;text-align:center;border:1px solid #0d6b63;font-weight:600;">Shift</th>' +
+                    '<th style="padding:10px 8px;text-align:center;border:1px solid #0d6b63;font-weight:600;">Progress</th>' +
+                    '</tr></thead><tbody>';
+                history.slice(0, 10).forEach(function(h, idx) {
+                    var hDate = h.date ? h.date : new Date(h.timestamp).toLocaleDateString();
+                    var hWorker = h.worker || 'Not specified';
+                    var hShift = h.shift || 'Day';
+                    var hTasks = h.tasks || {};
+                    var hCount = 0;
+                    Object.keys(hTasks).forEach(function(tid) {
+                        var v = parseInt(hTasks[tid]) || 0;
+                        if (v > 0) hCount++;
+                    });
+                    var bg = idx % 2 === 0 ? '#f9fafb' : '#ffffff';
+                    historyHtml += '<tr style="background:' + bg + ';">' +
+                        '<td style="padding:8px;border:1px solid #d1d5db;">' + hDate + '</td>' +
+                        '<td style="padding:8px;border:1px solid #d1d5db;font-weight:600;">' + hWorker + '</td>' +
+                        '<td style="padding:8px;border:1px solid #d1d5db;text-align:center;">' + hShift + '</td>' +
+                        '<td style="padding:8px;border:1px solid #d1d5db;text-align:center;">' + (hCount > 0 ? hCount + ' tasks updated' : 'No progress') + '</td>' +
+                        '</tr>';
+                });
+                historyHtml += '</tbody></table>';
+                pdfContent.innerHTML += historyHtml;
+            }
+
+            var opt = {
+                margin: [0.5, 0.5, 0.5, 0.5],
+                filename: proj.name + '_' + lineName + '_Summary_' + now.toISOString().split('T')[0] + '.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            showToast('Generating PDF...', 'success');
+            html2pdf().set(opt).from(pdfContent).save().then(function() {
+                showToast('PDF downloaded!', 'success');
+            }).catch(function(err) {
+                showToast('PDF generation failed: ' + err.message, 'error');
+            });
+        }
+
+        function openAdmin() { document.getElementById('adminPanel').classList.add('active'); }
+        function closeAdmin() { document.getElementById('adminPanel').classList.remove('active'); }
+        function doAdminLogin() {
+            var pass = document.getElementById('adminPass').value;
+            if (pass === 'ADMIN') {
+                document.getElementById('adminContent').style.display = 'block';
+                renderAdminContent();
+                // Update Firebase status
+                var statusEl = document.getElementById('firebaseStatus');
+                if (statusEl) {
+                    if (firebaseEnabled) {
+                        statusEl.innerHTML = 'Firebase: <span style="color:var(--success); font-weight:700;">Connected</span> (' + firebaseConfig.projectId + ')';
+                    } else {
+                        statusEl.innerHTML = 'Firebase: <span style="color:var(--danger); font-weight:700;">Not Connected</span> - Check console for errors';
+                    }
+                }
+                showToast('Admin access granted');
+            } else { showToast('Wrong password', 'error'); }
+        }
+
+        function renderAdminContent() {
+            renderAdminProjects();
+            renderAdminProjectLines();
+            renderAdminTasks();
+        }
+
+        function renderAdminProjects() {
+            var container = document.getElementById('adminProjects');
+            container.innerHTML = '';
+            if (config.projects.length === 0) {
+                container.innerHTML = '<div style="font-size:0.875rem;color:var(--gray-400);padding:0.5rem;">No projects yet.</div>';
+                return;
+            }
+            config.projects.forEach(function(p, idx) {
+                var row = document.createElement('div');
+                row.className = 'config-row';
+                row.innerHTML = '<input type="text" value="' + p.name + '" data-idx="' + idx + '" onchange="updateProjectName(this)">' +
+                    '<button class="btn-icon" onclick="removeProject(' + idx + ')">-</button>';
+                container.appendChild(row);
+            });
+        }
+
+        function addProject() {
+            var id = 'p' + (config.projects.length + 1 + Math.floor(Math.random() * 1000));
+            config.projects.push({ id: id, name: 'New Project' });
+            if (!config.projectLines) config.projectLines = {};
+            config.projectLines[id] = ['Line 1'];
+            saveConfig();
+            renderAdminContent();
+            renderProjects();
+            updateSummary();
+        }
+
+        function removeProject(idx) {
+            if (!confirm('Delete this project and all its lines/tasks?')) return;
+            var p = config.projects[idx];
+            if (p) {
+                delete config.projectLines[p.id];
+                if (config.lineTasks) {
+                    Object.keys(config.lineTasks).forEach(function(k) {
+                        if (k.indexOf(p.id + '_') === 0) delete config.lineTasks[k];
+                    });
+                }
+            }
+            config.projects.splice(idx, 1);
+            saveConfig();
+            renderAdminContent();
+            renderProjects();
+            updateSummary();
+        }
+
+        function updateProjectName(input) {
+            var idx = parseInt(input.getAttribute('data-idx'));
+            if (config.projects[idx]) {
+                config.projects[idx].name = input.value;
+                saveConfig();
+                renderProjects();
+                updateSummary();
+                renderAdminProjectLines();
+            }
+        }
+
+        function renderAdminProjectLines() {
+            var container = document.getElementById('adminProjectLines');
+            container.innerHTML = '';
+            if (config.projects.length === 0) {
+                container.innerHTML = '<div style="font-size:0.875rem;color:var(--gray-400);padding:0.5rem;">Add a project first.</div>';
+                return;
+            }
+            config.projects.forEach(function(p) {
+                var section = document.createElement('div');
+                section.style.cssText = 'margin-bottom: 1rem;';
+                var title = document.createElement('div');
+                title.style.cssText = 'font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 0.5rem;';
+                title.textContent = 'Project Lines (' + p.name + ')';
+                section.appendChild(title);
+                var lines = getProjectLines(p.id) || [];
+                lines.forEach(function(ln, idx) {
+                    var row = document.createElement('div');
+                    row.className = 'config-row';
+                    row.innerHTML = '<input type="text" value="' + ln + '" data-project="' + p.id + '" data-idx="' + idx + '" oninput="updateLineName(this)">' +
+                        '<button class="btn-icon" onclick="removeLine(\'' + p.id + '\',' + idx + ')">-</button>';
+                    section.appendChild(row);
+                });
+                var addBtn = document.createElement('button');
+                addBtn.className = 'btn btn-secondary';
+                addBtn.style.cssText = 'width:auto;padding:0.375rem 0.75rem;font-size:0.8125rem;margin-top:0.25rem;';
+                addBtn.textContent = '+ Add Line';
+                addBtn.onclick = function() { addLineToProject(p.id); };
+                section.appendChild(addBtn);
+                container.appendChild(section);
+            });
+        }
+
+        function updateLineName(input) {
+            var projId = input.getAttribute('data-project');
+            var idx = parseInt(input.getAttribute('data-idx'));
+            var lines = getProjectLines(projId);
+            if (lines && lines[idx]) {
+                var oldName = lines[idx];
+                var newName = input.value.trim();
+                if (!newName) return;
+                lines[idx] = newName;
+                if (config.lineTasks) {
+                    var oldKey = projId + '_' + oldName;
+                    var newKey = projId + '_' + newName;
+                    if (config.lineTasks[oldKey]) {
+                        config.lineTasks[newKey] = config.lineTasks[oldKey];
+                        delete config.lineTasks[oldKey];
+                    }
+                }
+                saveConfig();
+                updateSummary();
+            }
+        }
+
+        function addLineToProject(projId) {
+            if (!config.projectLines[projId]) config.projectLines[projId] = [];
+            config.projectLines[projId].push('Line ' + (config.projectLines[projId].length + 1));
+            saveConfig();
+            renderAdminProjectLines();
+            updateSummary();
+        }
+
+        function removeLine(projId, idx) {
+            if (!confirm('Remove this line?')) return;
+            var lines = getProjectLines(projId);
+            if (lines) {
+                var removed = lines.splice(idx, 1)[0];
+                if (config.lineTasks) delete config.lineTasks[projId + '_' + removed];
+            }
+            saveConfig();
+            renderAdminProjectLines();
+            updateSummary();
+        }
+
+        function renderAdminTasks() {
+            var container = document.getElementById('adminTasks');
+            container.innerHTML = '';
+            if (config.projects.length === 0) {
+                container.innerHTML = '<div style="font-size:0.875rem;color:var(--gray-400);padding:0.5rem;">Add projects and lines first.</div>';
+                return;
+            }
+            config.projects.forEach(function(p) {
+                var plines = getProjectLines(p.id) || [];
+                plines.forEach(function(ln) {
+                    var section = document.createElement('div');
+                    section.style.cssText = 'margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--gray-200);';
+                    var title = document.createElement('div');
+                    title.style.cssText = 'font-size: 0.875rem; font-weight: 600; color: var(--gray-700); margin-bottom: 0.5rem;';
+                    title.textContent = 'Task (' + p.name + ' - ' + ln + ')';
+                    section.appendChild(title);
+                    var tasks = getLineTasks(p.id, ln);
+                    if (tasks.length === 0) {
+                        section.innerHTML += '<div style="font-size:0.75rem;color:var(--gray-400);padding:0.25rem;">No tasks yet.</div>';
+                    } else {
+                        tasks.forEach(function(t, idx) {
+                            var row = document.createElement('div');
+                            row.className = 'config-row';
+                            row.style.cssText = 'flex-wrap:wrap;gap:0.25rem;margin-bottom:0.5rem;align-items:flex-start;';
+                            row.innerHTML = '<div style="flex:2;min-width:120px;"><input type="text" placeholder="Task name" value="' + (t.name || '') + '" style="width:100%;padding:0.5rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.875rem;" onchange="updateTaskField(\'' + p.id + '\',\'' + ln + '\',' + idx + ', \'name\', this.value)"></div>' +
+                                '<div style="flex:1;min-width:60px;"><input type="number" placeholder="Total" value="' + (t.total || 100) + '" style="width:100%;padding:0.5rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.875rem;" onchange="updateTaskField(\'' + p.id + '\',\'' + ln + '\',' + idx + ', \'total\', this.value)"></div>' +
+                                '<div style="flex:1;min-width:50px;"><input type="text" placeholder="Unit" value="' + (t.unit || 'm') + '" style="width:100%;padding:0.5rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.875rem;" onchange="updateTaskField(\'' + p.id + '\',\'' + ln + '\',' + idx + ', \'unit\', this.value)"></div>' +
+                                '<div style="flex:1;min-width:100px;"><input type="date" value="' + (t.start || '') + '" style="width:100%;padding:0.5rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.875rem;" onchange="updateTaskField(\'' + p.id + '\',\'' + ln + '\',' + idx + ', \'start\', this.value)"></div>' +
+                                '<div style="flex:1;min-width:100px;"><input type="date" value="' + (t.end || '') + '" style="width:100%;padding:0.5rem;border:1px solid var(--gray-300);border-radius:6px;font-size:0.875rem;" onchange="updateTaskField(\'' + p.id + '\',\'' + ln + '\',' + idx + ', \'end\', this.value)"></div>' +
+                                '<button class="btn-icon" onclick="removeTask(\'' + p.id + '\',\'' + ln + '\',' + idx + ')">-</button>';
+                            section.appendChild(row);
+                        });
+                    }
+                    var addBtn = document.createElement('button');
+                    addBtn.className = 'btn btn-secondary';
+                    addBtn.style.cssText = 'width:auto;padding:0.375rem 0.75rem;font-size:0.8125rem;margin-top:0.25rem;';
+                    addBtn.textContent = '+ Add Task';
+                    addBtn.onclick = function() { addTaskToLine(p.id, ln); };
+                    section.appendChild(addBtn);
+                    container.appendChild(section);
+                });
+            });
+        }
+
+        function addTaskToLine(projId, lineName) {
+            var tasks = getLineTasks(projId, lineName);
+            tasks.push({ id: 't' + (tasks.length + 1 + Math.floor(Math.random() * 1000)), name: 'New Task', total: 100, unit: 'm', start: '', end: '' });
+            saveLineTasks(projId, lineName, tasks);
+            renderAdminTasks();
+        }
+
+        function removeTask(projId, lineName, idx) {
+            var tasks = getLineTasks(projId, lineName);
+            tasks.splice(idx, 1);
+            saveLineTasks(projId, lineName, tasks);
+            renderAdminTasks();
+        }
+
+        function updateTaskField(projId, lineName, idx, field, value) {
+            var tasks = getLineTasks(projId, lineName);
+            if (tasks[idx]) {
+                if (field === 'total') tasks[idx][field] = parseInt(value) || 100;
+                else tasks[idx][field] = value;
+                saveLineTasks(projId, lineName, tasks);
+            }
+        }
+
+        function exportConfig() {
+            var fullData = {
+                config: config,
+                reports: getAllReports(),
+                exportedAt: new Date().toISOString()
+            };
+            var dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(fullData, null, 2));
+            var a = document.createElement('a');
+            a.href = dataStr;
+            a.download = 'dpr_full_backup_' + new Date().toISOString().split('T')[0] + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast('Full backup exported (config + all reports)');
+        }
+
+        function importConfig() {
+            document.getElementById('configImport').click();
+        }
+
+        function handleConfigImport(input) {
+            var file = input.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    var imported = JSON.parse(e.target.result);
+                    var importedConfig = null;
+                    var importedReports = null;
+
+                    // Check if it's a full backup (has config + reports)
+                    if (imported.config && imported.config.projects) {
+                        importedConfig = imported.config;
+                        importedReports = imported.reports || [];
+                    } else if (imported.projects) {
+                        // Old format: just config
+                        importedConfig = imported;
+                    }
+
+                    if (importedConfig) {
+                        config = importedConfig;
+                        if (!config.lineTasks) config.lineTasks = {};
+                        saveConfig();
+
+                        // If reports are included, merge them with existing reports
+                        if (importedReports && importedReports.length > 0) {
+                            var existingReports = getAllReports();
+                            // Merge: add new reports that don't exist, update existing ones
+                            var reportMap = {};
+                            existingReports.forEach(function(r) {
+                                var key = (r.project || '') + '|' + (r.line || '') + '|' + (r.timestamp || '');
+                                reportMap[key] = r;
+                            });
+                            importedReports.forEach(function(r) {
+                                var key = (r.project || '') + '|' + (r.line || '') + '|' + (r.timestamp || '');
+                                // Only import if newer or not exists
+                                if (!reportMap[key] || (r.timestamp > reportMap[key].timestamp)) {
+                                    reportMap[key] = r;
+                                }
+                            });
+                            var merged = Object.values(reportMap).sort(function(a,b) {
+                                return (a.timestamp || 0) - (b.timestamp || 0);
+                            });
+                            localStorage.setItem('dpr_reports', JSON.stringify(merged));
+                        }
+
+                        renderAdminContent();
+                        renderProjects();
+                        updateSummary();
+                        renderRecentReports();
+                        showToast('Full backup imported successfully (config + reports)');
+                    } else {
+                        showToast('Invalid backup file', 'error');
+                    }
+                } catch(err) {
+                    showToast('Failed to import: ' + err.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+            input.value = '';
+        }
+
+        function syncConfigOnly() {
+            // Create a hidden file input for config-only sync
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.style.display = 'none';
+            document.body.appendChild(input);
+            input.addEventListener('change', function() {
+                var file = this.files[0];
+                if (!file) { document.body.removeChild(input); return; }
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        var imported = JSON.parse(e.target.result);
+                        var importedConfig = null;
+
+                        if (imported.config && imported.config.projects) {
+                            importedConfig = imported.config;
+                        } else if (imported.projects) {
+                            importedConfig = imported;
+                        }
+
+                        if (importedConfig) {
+                            // Preserve existing reports
+                            var existingReports = getAllReports();
+                            config = importedConfig;
+                            if (!config.lineTasks) config.lineTasks = {};
+                            saveConfig();
+                            // Restore reports after config overwrite
+                            localStorage.setItem('dpr_reports', JSON.stringify(existingReports));
+                            renderAdminContent();
+                            renderProjects();
+                            updateSummary();
+                            renderRecentReports();
+                            showToast('Config synced - task targets updated, reports preserved');
+                        } else {
+                            showToast('Invalid config file', 'error');
+                        }
+                    } catch(err) {
+                        showToast('Failed to sync: ' + err.message, 'error');
+                    }
+                    document.body.removeChild(input);
+                };
+                reader.readAsText(file);
+            });
+            input.click();
+        }
+
+        function resetDefaults() {
+            if (!confirm('Reset all config to defaults? This will erase projects, lines, and tasks.')) return;
+            config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+            saveConfig();
+            renderAdminContent();
+            renderProjects();
+            updateSummary();
+            showToast('Config reset to defaults');
+        }
+    </script>
+</body>
+</html>
