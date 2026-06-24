@@ -169,7 +169,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<base target="_blank">
 </head>
 <body>
     <header class="header">
@@ -347,7 +348,7 @@
 
                 <div id="adminContent" style="display:none;">
                     <div id="firebaseStatus" style="font-size:0.75rem; color:var(--gray-500); margin-bottom:0.5rem; padding:0.5rem; background:var(--gray-50); border-radius:6px;">
-                        Firebase: Checking...
+                        Firestore: Checking...
                     </div>
                     <!-- Projects Section -->
                     <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid var(--gray-200);">
@@ -372,7 +373,7 @@
                         <button class="btn btn-secondary" id="btnExport" style="width:auto;padding:0.5rem 1rem;font-size:0.875rem;">Export Full Backup</button>
                         <button class="btn btn-secondary" id="btnImport" style="width:auto;padding:0.5rem 1rem;font-size:0.875rem;">Import Full Backup</button>
                         <button class="btn btn-secondary" id="btnSyncConfig" style="width:auto;padding:0.5rem 1rem;font-size:0.875rem;">Sync Config Only</button>
-                        <button class="btn btn-secondary" id="btnFirebaseSync" style="width:auto;padding:0.5rem 1rem;font-size:0.875rem;">Firebase Sync</button>
+                        <button class="btn btn-secondary" id="btnFirestoreSync" style="width:auto;padding:0.5rem 1rem;font-size:0.875rem;">Firestore Sync</button>
                         <button class="btn btn-secondary" id="btnResetConfig" style="width:auto;padding:0.5rem 1rem;font-size:0.875rem;">Reset</button>
                     </div>
                 </div>
@@ -384,7 +385,7 @@
 
     <script>
         // Firebase Configuration
-        const firebaseConfig = {
+        var firebaseConfig = {
             apiKey: "AIzaSyC-MLpfD0FoV7pOz5sTQ9GvB3sXUNXatKU",
             authDomain: "v009-dpr-master-655a8.firebaseapp.com",
             projectId: "v009-dpr-master-655a8",
@@ -394,21 +395,24 @@
         };
 
         // Initialize Firebase
-        let firebaseApp = null;
-        let firebaseStorage = null;
-        let firebaseEnabled = false;
+        var firebaseApp = null;
+        var firestoreDb = null;
+        var firebaseEnabled = false;
 
         function initFirebase() {
             try {
                 if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length === 0) {
                     firebaseApp = firebase.initializeApp(firebaseConfig);
-                    firebaseStorage = firebase.storage();
+                    firestoreDb = firebase.firestore();
                     firebaseEnabled = true;
                     console.log('Firebase initialized successfully');
                 } else if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
                     firebaseApp = firebase.apps[0];
-                    firebaseStorage = firebase.storage();
+                    firestoreDb = firebase.firestore();
                     firebaseEnabled = true;
+                    console.log('Firebase already initialized');
+                } else {
+                    console.warn('Firebase SDK not loaded');
                 }
             } catch (e) {
                 console.error('Firebase init failed:', e);
@@ -416,107 +420,86 @@
             }
         }
 
-        // Upload photo to Firebase Storage
-        async function uploadPhotoToFirebase(file) {
-            if (!firebaseEnabled || !firebaseStorage) {
-                console.log('Firebase not available, using local storage only');
-                return null;
+        // Save report to Firestore
+        function saveReportToFirestore(reportData) {
+            if (!firebaseEnabled || !firestoreDb) {
+                console.log('Firestore not available, using localStorage only');
+                return Promise.resolve();
             }
-            try {
-                const timestamp = Date.now();
-                const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
-                const path = 'reports/photos/' + timestamp + '_' + safeName;
-                const ref = firebaseStorage.ref(path);
-                const snapshot = await ref.put(file);
-                const url = await snapshot.ref.getDownloadURL();
-                console.log('Photo uploaded to Firebase:', url);
-                return url;
-            } catch (e) {
-                console.error('Firebase upload failed:', e);
-                return null;
-            }
+            var reportId = 'report_' + Date.now();
+            return firestoreDb.collection('reports').doc(reportId).set(reportData).then(function() {
+                console.log('Report saved to Firestore:', reportId);
+            }).catch(function(e) {
+                console.error('Firestore save failed:', e);
+            });
         }
 
-        // Backup report to Firebase Storage
-        async function backupReportToFirebase(reportData) {
-            if (!firebaseEnabled || !firebaseStorage) return;
-            try {
-                const timestamp = Date.now();
-                const dateStr = new Date().toISOString().split('T')[0];
-                const path = 'backups/report_' + dateStr + '_' + timestamp + '.json';
-                const ref = firebaseStorage.ref(path);
-                const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
-                await ref.put(blob);
-                console.log('Report backed up to Firebase');
-            } catch (e) {
-                console.error('Firebase backup failed:', e);
-            }
+        // Save config to Firestore
+        function saveConfigToFirestore() {
+            if (!firebaseEnabled || !firestoreDb) return Promise.resolve();
+            return firestoreDb.collection('config').doc('master').set(config).then(function() {
+                console.log('Config saved to Firestore');
+            }).catch(function(e) {
+                console.error('Firestore config save failed:', e);
+            });
         }
 
-        // Sync config with Firebase (for multi-device sharing)
-        async function syncConfigWithFirebase() {
-            if (!firebaseEnabled || !firebaseStorage) {
-                showToast('Firebase not available', 'error');
-                return;
-            }
-            try {
-                const ref = firebaseStorage.ref('config/dpr_config.json');
-                // Try to download existing config first
-                try {
-                    const url = await ref.getDownloadURL();
-                    const response = await fetch(url);
-                    const remoteConfig = await response.json();
+        // Load config from Firestore
+        function loadConfigFromFirestore() {
+            if (!firebaseEnabled || !firestoreDb) return Promise.resolve();
+            return firestoreDb.collection('config').doc('master').get().then(function(doc) {
+                if (doc.exists) {
+                    var remoteConfig = doc.data();
                     if (remoteConfig && remoteConfig.projects) {
-                        if (confirm('Found remote config. Replace local config?')) {
-                            config = remoteConfig;
-                            if (!config.lineTasks) config.lineTasks = {};
-                            saveConfig();
-                            renderAdminContent();
-                            renderProjects();
-                            updateSummary();
-                            renderRecentReports();
-                            showToast('Config synced from Firebase');
-                            return;
-                        }
+                        config = remoteConfig;
+                        if (!config.lineTasks) config.lineTasks = {};
+                        saveConfig();
+                        renderProjects();
+                        updateSummary();
+                        renderRecentReports();
+                        console.log('Config loaded from Firestore');
                     }
-                } catch (e) {
-                    // No remote config exists yet
                 }
-                // Upload local config
-                const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
-                await ref.put(blob);
-                showToast('Config uploaded to Firebase');
-            } catch (e) {
-                console.error('Config sync failed:', e);
-                showToast('Config sync failed', 'error');
-            }
+            }).catch(function(e) {
+                console.error('Firestore config load failed:', e);
+            });
         }
 
-        // Upload all photos in current report to Firebase
-        async function uploadAllPhotosToFirebase() {
-            if (!firebaseEnabled || currentReport.photos.length === 0) return;
-            showToast('Uploading photos to cloud...');
-            for (var i = 0; i < currentReport.photos.length; i++) {
-                var photo = currentReport.photos[i];
-                if (photo.src && photo.src.startsWith('data:')) {
-                    // Convert base64 to file and upload
-                    try {
-                        var response = await fetch(photo.src);
-                        var blob = await response.blob();
-                        var file = new File([blob], photo.name || 'photo.jpg', { type: blob.type });
-                        var url = await uploadPhotoToFirebase(file);
-                        if (url) {
-                            currentReport.photos[i].src = url;
-                            currentReport.photos[i].firebaseUrl = url;
-                        }
-                    } catch (e) {
-                        console.error('Photo upload failed:', e);
-                    }
+        // Load all reports from Firestore
+        function loadReportsFromFirestore() {
+            if (!firebaseEnabled || !firestoreDb) return Promise.resolve();
+            return firestoreDb.collection('reports').orderBy('timestamp', 'desc').get().then(function(snapshot) {
+                var reports = [];
+                snapshot.forEach(function(doc) {
+                    reports.push(doc.data());
+                });
+                if (reports.length > 0) {
+                    localStorage.setItem('dpr_reports', JSON.stringify(reports));
+                    console.log('Reports loaded from Firestore:', reports.length);
                 }
-            }
-            renderPhotos();
-            showToast('Photos uploaded to cloud');
+            }).catch(function(e) {
+                console.error('Firestore reports load failed:', e);
+            });
         }
+
+        // Sync everything with Firestore
+        function syncWithFirestore() {
+            if (!firebaseEnabled || !firestoreDb) {
+                showToast('Firestore not available', 'error');
+                return Promise.resolve();
+            }
+            showToast('Syncing with Firestore...');
+            return Promise.all([
+                saveConfigToFirestore(),
+                loadConfigFromFirestore(),
+                loadReportsFromFirestore()
+            ]).then(function() {
+                showToast('Sync complete!', 'success');
+            }).catch(function(e) {
+                showToast('Sync failed', 'error');
+            });
+        }
+
 
         const DEFAULT_CONFIG = {
             projects: [
@@ -551,6 +534,8 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             initFirebase();
+            loadConfigFromFirestore();
+            loadReportsFromFirestore();
             loadConfig();
             initDate();
             renderProjects();
@@ -615,9 +600,9 @@
                 e.preventDefault();
                 syncConfigOnly();
             });
-            document.getElementById('btnFirebaseSync').addEventListener('click', function(e) {
+            document.getElementById('btnFirestoreSync').addEventListener('click', function(e) {
                 e.preventDefault();
-                syncConfigWithFirebase();
+                syncWithFirestore();
             });
             document.getElementById('configImport').addEventListener('change', function(e) {
                 handleConfigImport(this);
@@ -720,6 +705,12 @@
 
         function saveConfig() {
             localStorage.setItem('dpr_config', JSON.stringify(config));
+            // Also save to Firestore
+            if (firebaseEnabled) {
+                saveConfigToFirestore().catch(function(err) {
+                    console.error('Firestore config save error:', err);
+                });
+            }
         }
 
         function initDate() {
@@ -757,9 +748,13 @@
             var all = getAllReports();
             all.push(report);
             localStorage.setItem('dpr_reports', JSON.stringify(all));
-            // Also backup to Firebase
+            // Also save to Firestore
             if (firebaseEnabled) {
-                backupReportToFirebase(report);
+                saveReportToFirestore(report).then(function() {
+                    console.log('Report synced to Firestore');
+                }).catch(function(err) {
+                    console.error('Firestore sync error:', err);
+                });
             }
             return report;
         }
@@ -1419,20 +1414,6 @@
                     currentReport.photos.push({ src: e.target.result, name: file.name });
                     renderPhotos();
                     updatePreview();
-                    // Also upload to Firebase if available
-                    if (firebaseEnabled) {
-                        uploadPhotoToFirebase(file).then(function(url) {
-                            if (url) {
-                                // Update the photo entry with Firebase URL
-                                for (var i = 0; i < currentReport.photos.length; i++) {
-                                    if (currentReport.photos[i].src === e.target.result) {
-                                        currentReport.photos[i].firebaseUrl = url;
-                                        break;
-                                    }
-                                }
-                            }
-                        });
-                    }
                 };
                 reader.readAsDataURL(file);
             });
@@ -1974,13 +1955,12 @@
             if (pass === 'ADMIN') {
                 document.getElementById('adminContent').style.display = 'block';
                 renderAdminContent();
-                // Update Firebase status
                 var statusEl = document.getElementById('firebaseStatus');
                 if (statusEl) {
                     if (firebaseEnabled) {
-                        statusEl.innerHTML = 'Firebase: <span style="color:var(--success); font-weight:700;">Connected</span> (' + firebaseConfig.projectId + ')';
+                        statusEl.innerHTML = 'Firestore: <span style="color:var(--success); font-weight:700;">Connected</span> (' + firebaseConfig.projectId + ')';
                     } else {
-                        statusEl.innerHTML = 'Firebase: <span style="color:var(--danger); font-weight:700;">Not Connected</span> - Check console for errors';
+                        statusEl.innerHTML = 'Firestore: <span style="color:var(--danger); font-weight:700;">Not Connected</span> - Check console (F12) for errors';
                     }
                 }
                 showToast('Admin access granted');
