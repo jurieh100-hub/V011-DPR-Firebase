@@ -171,6 +171,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
     <header class="header">
@@ -1695,9 +1696,10 @@
                     var task = tasks.find(function(t) { return t.name === taskName; });
                     // Use the SAME function as the dashboard for consistency
                     var latestProgress = getLatestLineProgress(col.project.name, col.line);
-                    var val = task && latestProgress[task.id] !== undefined ? latestProgress[task.id] : 0;
+                    var hasTask = !!task;
+                    var val = hasTask && latestProgress[task.id] !== undefined ? latestProgress[task.id] : 0;
                     var total = task ? (task.total || 100) : 100;
-                    var pct = val > 0 ? Math.min(100, Math.round((val / total) * 100)) : 0;
+                    var pct = hasTask ? Math.min(100, Math.round((val / total) * 100)) : 0;
                     var status = task ? getTaskStatusColor(task, val) : { color: 'var(--gray-300)', status: 'nodates' };
 
                     var deadline = '';
@@ -1707,7 +1709,7 @@
                         deadline = '<div style="font-size:0.75rem;color:var(--gray-500);margin-top:0.25rem;font-weight:600;">' + dateStr + '</div>';
                     }
 
-                    var cellContent = val > 0 ? pct + '%' : 'N/A';
+                    var cellContent = hasTask ? pct + '%' : 'N/A';
                     tableHtml += '<td style="text-align:center;padding:0.75rem 0.5rem;color:' + status.color + ';">' +
                         '<div style="font-weight:700;font-size:1rem;">' + cellContent + '</div>' + deadline + '</td>';
                 });
@@ -1718,92 +1720,134 @@
         }
 
         function exportSummaryPDF() {
-            var allReports = getAllReports();
-            var latestValues = {};
-            allReports.forEach(function(r) {
-                var pn = r.project || 'Unknown';
-                var ln = r.line || 'Unknown';
-                if (!latestValues[pn]) latestValues[pn] = {};
-                if (!latestValues[pn][ln]) latestValues[pn][ln] = {};
-                if (r.tasks) {
-                    Object.keys(r.tasks).forEach(function(tid) {
-                        var val = parseInt(r.tasks[tid]) || 0;
-                        if (!latestValues[pn][ln][tid] || val > latestValues[pn][ln][tid])
-                            latestValues[pn][ln][tid] = val;
-                    });
-                }
-            });
-
             var now = new Date();
-            var pdfContent = document.createElement('div');
-            pdfContent.style.cssText = 'font-family:Arial,Helvetica,sans-serif;padding:30px;color:#1f2937;max-width:900px;margin:0 auto;background:#fff;';
 
-            var headerHtml = '<div style="border-bottom:3px solid #128C7E;padding-bottom:15px;margin-bottom:25px;">' +
-                '<h1 style="color:#128C7E;font-size:28px;margin:0 0 5px 0;font-weight:700;">Project Progress Summary</h1>' +
-                '<p style="color:#6b7280;font-size:13px;margin:0;">Generated: ' + now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + '</p>' +
+            // A4 landscape at 96 DPI = 1123 x 794 pixels
+            var PAGE_W = 1123;
+            var PAGE_H = 794;
+            var PAD = 12;
+            var CONTENT_W = PAGE_W - (PAD * 2);
+            var CONTENT_H = PAGE_H - (PAD * 2);
+
+            var pdfContent = document.createElement('div');
+            pdfContent.style.cssText = 'font-family:Arial,Helvetica,sans-serif;padding:' + PAD + 'px;color:#1f2937;background:#fff;width:' + PAGE_W + 'px;height:' + PAGE_H + 'px;overflow:hidden;box-sizing:border-box;position:relative;';
+
+            // Header
+            var headerH = 36;
+            var headerHtml = '<div style="border-bottom:2px solid #128C7E;padding-bottom:3px;margin-bottom:4px;height:' + (headerH - 7) + 'px;overflow:hidden;">' +
+                '<h1 style="color:#128C7E;font-size:14px;margin:0 0 1px 0;font-weight:700;line-height:1.2;">Project Progress Summary</h1>' +
+                '<p style="color:#6b7280;font-size:7px;margin:0;line-height:1.2;">Generated: ' + now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + '</p>' +
                 '</div>';
             pdfContent.innerHTML = headerHtml;
 
+            // Collect columns
+            var columns = [];
             config.projects.forEach(function(p) {
                 var plines = getProjectLines(p.id);
-                if (plines.length === 0) return;
-
-                var section = document.createElement('div');
-                section.style.cssText = 'margin-bottom:30px;';
-
-                var projHeader = '<h2 style="color:#374151;font-size:18px;margin:20px 0 12px 0;padding-bottom:6px;border-bottom:2px solid #25D366;font-weight:700;">' + p.name + '</h2>';
-
-                var tableHtml = '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:10px;">' +
-                    '<thead><tr style="background:#128C7E;color:white;">' +
-                    '<th style="padding:10px 8px;text-align:left;border:1px solid #0d6b63;font-weight:600;">Task</th>';
                 plines.forEach(function(ln) {
-                    tableHtml += '<th style="padding:10px 8px;text-align:center;border:1px solid #0d6b63;font-weight:600;">' + ln + '</th>';
+                    columns.push({ project: p, line: ln, key: p.name + ' - ' + ln });
                 });
-                tableHtml += '</tr></thead><tbody>';
-
-                var tasks = getLineTasks(p.id, plines[0]);
-                var rowCount = 0;
-                tasks.forEach(function(t) {
-                    if (!t.name || t.name === 'New Task' || t.name.trim() === '') return;
-                    var bg = rowCount % 2 === 0 ? '#f9fafb' : '#ffffff';
-                    tableHtml += '<tr style="background:' + bg + ';">' +
-                        '<td style="padding:8px;border:1px solid #d1d5db;font-weight:600;color:#374151;">' + t.name + '</td>';
-                    plines.forEach(function(ln) {
-                        var lineTasks = getLineTasks(p.id, ln);
-                        var task = lineTasks.find(function(lt) { return lt.name === t.name; });
-                        var latestProgress = getLatestLineProgress(p.name, ln);
-                        var val = task && latestProgress[task.id] !== undefined ? latestProgress[task.id] : 0;
-                        var total = task ? (task.total || 100) : 100;
-                        var pct = val > 0 ? Math.min(100, Math.round((val / total) * 100)) : 0;
-
-                        var statusColor = pct >= 100 ? '#10b981' : (pct > 0 ? '#25D366' : '#9ca3af');
-                        var statusText = pct >= 100 ? 'Complete' : (pct > 0 ? pct + '%' : 'N/A');
-                        var barHtml = pct > 0 ? '<div style="width:100%;height:6px;background:#e5e7eb;border-radius:3px;margin-top:4px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + statusColor + ';border-radius:3px;"></div></div>' : '';
-
-                        var dateStr = '';
-                        if (task && task.end) {
-                            var d = new Date(task.end);
-                            dateStr = '<div style="font-size:10px;color:#9ca3af;margin-top:3px;">Due: ' + d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear() + '</div>';
-                        }
-
-                        tableHtml += '<td style="padding:8px;border:1px solid #d1d5db;text-align:center;">' +
-                            '<div style="font-weight:700;color:' + statusColor + ';font-size:13px;">' + statusText + '</div>' + barHtml + dateStr + '</td>';
-                    });
-                    tableHtml += '</tr>';
-                    rowCount++;
-                });
-                tableHtml += '</tbody></table>';
-
-                section.innerHTML = projHeader + tableHtml;
-                pdfContent.appendChild(section);
             });
 
+            // Collect all unique task names
+            var rowTasks = [];
+            var seenTaskNames = {};
+            config.projects.forEach(function(p) {
+                var plines = getProjectLines(p.id);
+                plines.forEach(function(ln) {
+                    var tasks = getLineTasks(p.id, ln);
+                    tasks.forEach(function(t) {
+                        if (t.name && t.name !== 'New Task' && t.name.trim() !== '' && !seenTaskNames[t.name]) {
+                            seenTaskNames[t.name] = true;
+                            rowTasks.push(t.name);
+                        }
+                    });
+                });
+            });
+
+            if (columns.length === 0 || rowTasks.length === 0) {
+                showToast('No data to export', 'error');
+                return;
+            }
+
+            // Calculate table dimensions
+            var taskColW = 130;
+            var dataW = CONTENT_W - taskColW;
+            var colW = Math.floor(dataW / columns.length);
+            var headerRowH = 55;
+            var tableH = CONTENT_H - headerH - 4;
+            var rowH = Math.floor((tableH - headerRowH) / rowTasks.length);
+            if (rowH < 16) rowH = 16;
+
+            // Build table
+            var tableHtml = '<table style="width:' + CONTENT_W + 'px;border-collapse:collapse;font-size:7px;table-layout:fixed;border:1px solid #0d6b63;">';
+
+            // Header row
+            tableHtml += '<thead><tr style="background:#128C7E;color:white;height:' + headerRowH + 'px;">';
+            tableHtml += '<th style="padding:2px 3px;text-align:left;border:0.5px solid #0d6b63;font-weight:600;width:' + taskColW + 'px;vertical-align:middle;font-size:8px;">Task</th>';
+            columns.forEach(function(col) {
+                tableHtml += '<th style="padding:1px 1px;text-align:center;border:0.5px solid #0d6b63;font-weight:600;width:' + colW + 'px;vertical-align:middle;word-wrap:break-word;overflow-wrap:break-word;line-height:1.05;font-size:5.5px;letter-spacing:-0.3px;">' + col.key + '</th>';
+            });
+            tableHtml += '</tr></thead><tbody>';
+
+            // Data rows
+            rowTasks.forEach(function(taskName, rowIdx) {
+                var bg = rowIdx % 2 === 0 ? '#f9fafb' : '#ffffff';
+                tableHtml += '<tr style="background:' + bg + ';height:' + rowH + 'px;">';
+                tableHtml += '<td style="padding:1px 3px;border:0.5px solid #d1d5db;font-weight:600;color:#374151;font-size:7px;vertical-align:middle;word-wrap:break-word;overflow-wrap:break-word;line-height:1.05;width:' + taskColW + 'px;">' + taskName + '</td>';
+
+                columns.forEach(function(col) {
+                    var tasks = getLineTasks(col.project.id, col.line);
+                    var task = tasks.find(function(t) { return t.name === taskName; });
+                    var latestProgress = getLatestLineProgress(col.project.name, col.line);
+                    var hasTask = !!task;
+                    var val = hasTask && latestProgress[task.id] !== undefined ? latestProgress[task.id] : 0;
+                    var total = task ? (task.total || 100) : 100;
+                    var pct = hasTask ? Math.min(100, Math.round((val / total) * 100)) : 0;
+                    var status = task ? getTaskStatusColor(task, val) : { color: '#9ca3af', status: 'nodates' };
+
+                    var cellContent = hasTask ? pct + '%' : 'N/A';
+
+                    var dueDate = '';
+                    if (task && task.end) {
+                        var d = new Date(task.end);
+                        dueDate = '<div style="font-size:5px;color:#9ca3af;margin-top:0px;line-height:1;">Due: ' + d.getDate() + '/' + (d.getMonth()+1) + '</div>';
+                    }
+
+                    var barHtml = '';
+                    if (hasTask) {
+                        barHtml = '<div style="width:85%;height:1.5px;background:#e5e7eb;border-radius:0.5px;margin:0.5px auto 0 auto;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + status.color + ';border-radius:0.5px;"></div></div>';
+                    }
+
+                    tableHtml += '<td style="padding:0.5px 1px;border:0.5px solid #d1d5db;text-align:center;vertical-align:middle;width:' + colW + 'px;">' +
+                        '<div style="font-weight:700;color:' + status.color + ';font-size:7px;line-height:1;">' + cellContent + '</div>' + dueDate + barHtml + '</td>';
+                });
+                tableHtml += '</tr>';
+            });
+            tableHtml += '</tbody></table>';
+
+            pdfContent.innerHTML += tableHtml;
+
+            // Use html2pdf - the key is to match the div dimensions to the PDF page exactly
             var opt = {
-                margin: [0.5, 0.5, 0.5, 0.5],
+                margin: 0,
                 filename: 'Project_Summary_' + now.toISOString().split('T')[0] + '.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+                image: { type: 'jpeg', quality: 1.0 },
+                html2canvas: { 
+                    scale: 2,
+                    useCORS: true, 
+                    scrollY: 0, 
+                    scrollX: 0,
+                    width: PAGE_W,
+                    height: PAGE_H,
+                    logging: false
+                },
+                jsPDF: { 
+                    unit: 'px', 
+                    format: [PAGE_W, PAGE_H],
+                    orientation: 'landscape',
+                    compress: false
+                }
             };
 
             showToast('Generating PDF...', 'success');
