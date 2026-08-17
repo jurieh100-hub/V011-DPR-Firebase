@@ -57,13 +57,7 @@
         .task-bar-fill.high { background: linear-gradient(90deg, var(--primary-dark), var(--primary)); }
         .task-bar-fill.complete { background: linear-gradient(90deg, #059669, #10b981); }
         .task-bar-text { position: absolute; width: 100%; text-align: center; top: 0; left: 0; line-height: 24px; font-size: 0.75rem; font-weight: 700; color: var(--gray-700); }
-        .upload-zone { border: 2px dashed var(--gray-300); border-radius: 12px; padding: 1.5rem 1rem; text-align: center; cursor: pointer; background: var(--gray-50); -webkit-user-select: none; user-select: none; touch-action: manipulation; }
-        .upload-zone:active { border-color: var(--primary); background: rgba(37, 211, 102, 0.03); }
         .file-input { display: none; }
-        .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.75rem; }
-        .photo-item { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 1; }
-        .photo-item img { width: 100%; height: 100%; object-fit: cover; }
-        .photo-remove { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background: var(--danger); color: white; border: none; border-radius: 50%; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .btn { width: 100%; padding: 1rem; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
         .btn-whatsapp { background: var(--whatsapp); color: white; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); }
         .btn-whatsapp:active { transform: scale(0.98); }
@@ -90,8 +84,6 @@
         .config-row input, .config-row select { flex: 1; padding: 0.5rem; border: 1px solid var(--gray-300); border-radius: 6px; font-size: 0.875rem; }
         .btn-icon { width: 32px; height: 32px; border-radius: 6px; border: none; background: var(--gray-200); cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; }
         .btn-icon:hover { background: var(--danger); color: white; }
-        .cam-btn { background: var(--primary); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 0.5rem; width: 100%; -webkit-user-select: none; user-select: none; touch-action: manipulation; font-size: 1rem; }
-        .cam-btn:active { transform: scale(0.95); }
         .admin-link { display: block; text-align: center; padding: 0.5rem; color: var(--gray-400); font-size: 0.75rem; text-decoration: underline; cursor: pointer; margin-top: 2rem; }
 
         .dash-card { background: white; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid var(--gray-100); }
@@ -212,9 +204,8 @@
 
                 <div class="dash-totals">
                     <div class="dash-total-item"><div class="dash-total-val" id="sumProgress">0%</div><div class="dash-total-label">Overall</div></div>
-                    <div class="dash-total-item"><div class="dash-total-val" id="sumCompleted">0/0</div><div class="dash-total-label">Done</div></div>
+                    <div class="dash-total-item"><div class="dash-total-val" id="sumCompleted">0/0</div><div class="dash-total-label">Tasks completed</div></div>
                     <div class="dash-total-item"><div class="dash-total-val" id="sumLines">0</div><div class="dash-total-label">Lines</div></div>
-                    <div class="dash-total-item"><div class="dash-total-val" id="sumResources">0</div><div class="dash-total-label">Workers</div></div>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--gray-400); text-align: center; margin-top: 0.75rem;">
                     Last updated: <span id="sumLastUpdate">Never</span>
@@ -293,18 +284,6 @@
                     <label class="form-label">Tomorrow's Plan</label>
                     <textarea class="form-textarea" id="tomorrowPlan" placeholder="What's next..."></textarea>
                 </div>
-            </div>
-
-            <div class="card hidden" id="step-photos">
-                <div class="card-title">Photos</div>
-                <div class="upload-zone" id="uploadZone">
-                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">+</div>
-                    <div style="font-size: 0.875rem; color: var(--gray-600); font-weight: 600;">Tap to add photos</div>
-                    <div style="font-size: 0.75rem; color: var(--gray-400); margin-top: 0.25rem;">Select existing photos</div>
-                </div>
-                <input type="file" id="fileInput" class="file-input" accept="image/*" multiple>
-                <button class="cam-btn" id="camBtn">Open Camera</button>
-                <div class="photo-grid" id="photoGrid"></div>
             </div>
 
             <div class="card hidden" id="step-generate">
@@ -521,7 +500,7 @@
         };
 
         let config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
-        let currentReport = { project: null, line: null, worker: '', resources: '', shift: 'Day', tasks: {}, notes: {}, photos: [] };
+        let currentReport = { project: null, line: null, worker: '', resources: '', shift: 'Day', tasks: {}, notes: {} };
         let expandedProjectId = null;
         let adminSelectedProjectId = null;
         let adminSelectedLineName = null;
@@ -539,17 +518,6 @@
         });
 
         function bindEvents() {
-            document.getElementById('uploadZone').addEventListener('click', function(e) {
-                e.preventDefault(); e.stopPropagation();
-                document.getElementById('fileInput').click();
-            });
-            document.getElementById('fileInput').addEventListener('change', function(e) {
-                if (this.files && this.files.length > 0) handlePhotos(this.files);
-            });
-            document.getElementById('camBtn').addEventListener('click', function(e) {
-                e.preventDefault(); e.stopPropagation();
-                openCamera();
-            });
             document.getElementById('btnShareWA').addEventListener('click', function(e) {
                 e.preventDefault();
                 shareToWhatsApp();
@@ -740,7 +708,6 @@
                     tomorrow: document.getElementById('tomorrowPlan').value
                 },
                 resources: document.getElementById('resourcesCount').value || '0',
-                photos: currentReport.photos.length,
                 report_text: generateReportText()
             };
             var all = getAllReports();
@@ -835,25 +802,7 @@
         function updateSummary() {
             var allReports = getAllReports();
             var latestValues = {};
-            var reportedLinesPerProject = {};
-            var totalResources = 0;
-            var resourceReports = 0;
 
-            allReports.forEach(function(r) {
-                var projName = r.project || 'Unknown';
-                var lineName = r.line || 'Unknown';
-                if (!latestValues[projName]) latestValues[projName] = {};
-                if (!latestValues[projName][lineName]) latestValues[projName][lineName] = {};
-                if (!reportedLinesPerProject[projName]) reportedLinesPerProject[projName] = new Set();
-                reportedLinesPerProject[projName].add(lineName);
-                if (r.resources) {
-                    var res = parseInt(r.resources);
-                    if (!isNaN(res) && res > 0) {
-                        totalResources += res;
-                        resourceReports++;
-                    }
-                }
-            });
             // Now get most recent values per project-line
             config.projects.forEach(function(p) {
                 var plines = getProjectLines(p.id);
@@ -875,6 +824,7 @@
 
             var projectStats = {};
             var lineStats = {};
+            var completedLineKeys = new Set();
 
             config.projects.forEach(function(p) {
                 var projName = p.name;
@@ -883,13 +833,11 @@
                 var allTaskPct = [];
                 var completedTasks = 0;
                 var totalTasks = 0;
-                var activeLines = 0;
+                var completedLines = 0;
                 lineStats[p.id] = {};
 
                 projLines.forEach(function(ln) {
                     var taskVals = lineValues[ln] || {};
-                    var hasData = Object.keys(taskVals).length > 0;
-                    if (hasData) activeLines++;
                     var lineTaskList = getLineTasks(p.id, ln);
                     var linePctVals = [];
                     var lineCompleted = 0;
@@ -905,28 +853,29 @@
                         lineTotal++;
                         if (pct >= 100) { completedTasks++; lineCompleted++; }
                     });
+                    // A line only counts as complete when every one of its tasks is at 100%.
+                    // Math.floor (not round) on the mean of integer percentages guarantees
+                    // the line average can only read 100% when every task is truly 100%.
+                    var lineIsComplete = lineTotal > 0 && lineCompleted === lineTotal;
+                    if (lineIsComplete) { completedLines++; completedLineKeys.add(projName + '|' + ln); }
                     lineStats[p.id][ln] = {
-                        avg: linePctVals.length > 0 ? Math.round(linePctVals.reduce(function(a,b){return a+b;}, 0) / linePctVals.length) : 0,
+                        avg: linePctVals.length > 0 ? Math.floor(linePctVals.reduce(function(a,b){return a+b;}, 0) / linePctVals.length) : 0,
                         completed: lineCompleted,
                         total: lineTotal
                     };
                 });
                 var avg = allTaskPct.length > 0 ? Math.round(allTaskPct.reduce(function(a,b){return a+b;}, 0) / allTaskPct.length) : 0;
-                projectStats[projName] = { avg: avg, completed: completedTasks, total: totalTasks, activeLines: activeLines, configuredLines: projLines.length };
+                projectStats[projName] = { avg: avg, completed: completedTasks, total: totalTasks, activeLines: completedLines, configuredLines: projLines.length };
             });
 
             var allProjectAvgs = [];
             var totalCompleted = 0;
             var totalTasksAll = 0;
-            var allActiveLines = new Set();
             Object.keys(projectStats).forEach(function(pn) {
                 var s = projectStats[pn];
                 if (s.total > 0) allProjectAvgs.push(s.avg);
                 totalCompleted += s.completed;
                 totalTasksAll += s.total;
-                if (reportedLinesPerProject[pn]) {
-                    reportedLinesPerProject[pn].forEach(function(ln) { allActiveLines.add(pn + '|' + ln); });
-                }
             });
             var overallAvg = allProjectAvgs.length > 0 ? Math.round(allProjectAvgs.reduce(function(a,b){return a+b;}, 0) / allProjectAvgs.length) : 0;
 
@@ -990,8 +939,7 @@
 
             document.getElementById('sumProgress').textContent = overallAvg + '%';
             document.getElementById('sumCompleted').textContent = totalCompleted + '/' + totalTasksAll;
-            document.getElementById('sumLines').textContent = allActiveLines.size;
-            document.getElementById('sumResources').textContent = resourceReports > 0 ? Math.round(totalResources / resourceReports) : 0;
+            document.getElementById('sumLines').textContent = completedLineKeys.size;
             var lastUpdate = 'Never';
             if (allReports.length > 0) {
                 var dates = allReports.map(function(r) { return r.timestamp || 0; }).sort(function(a,b){return b-a;});
@@ -1024,8 +972,8 @@
                 var dayStatusColor = taskDaysUsed > tDays && pct < 100 && tDays > 0 ? 'var(--danger)' : 'var(--gray-500)';
                 html += '<div class="task-grid-item">' +
                     '<div class="task-grid-name">' + t.name + '</div>' +
-                    '<div class="task-grid-value" style="color:' + statusColor + ';">' + (hasValue ? val + ' <span style="font-size:0.7rem;font-weight:normal;">/ ' + tTotal + ' ' + (t.unit || 'm') + '</span>' : '-') + '</div>' +
-                    (hasValue ? '<div class="task-grid-value" style="font-size:0.9rem;color:' + statusColor + ';">' + pct + '%</div>' : '<div class="task-grid-value" style="font-size:0.9rem;color:var(--gray-300);">No data</div>') +
+                    '<div class="task-grid-value" style="color:' + statusColor + ';">' + val + ' <span style="font-size:0.7rem;font-weight:normal;">/ ' + tTotal + ' ' + (t.unit || 'm') + '</span></div>' +
+                    '<div class="task-grid-value" style="font-size:0.9rem;color:' + statusColor + ';">' + pct + '%</div>' +
                     (taskStart && taskEnd ? '<div class="task-grid-dates">' + taskStart + ' → ' + taskEnd + '</div>' : '') +
                     (hasValue && taskStart && taskEnd ? '<div class="task-grid-days" style="color:' + dayStatusColor + ';">' + taskDaysUsed + 'd used | ' + taskDaysLeft + 'd left</div>' : '') +
                 '</div>';
@@ -1079,16 +1027,16 @@
                 tasksHtml += '<div class="line-summary-card">' +
                     '<div class="line-summary-header">' +
                         '<div><span class="line-summary-title" style="color:' + statusColor + ';">' + t.name + '</span>' + behindBadge + '</div>' +
-                        '<span class="dash-pct" style="font-size:1.25rem;">' + (val > 0 ? pct + '%' : '-') + '</span>' +
+                        '<span class="dash-pct" style="font-size:1.25rem;">' + pct + '%</span>' +
                     '</div>' +
                     '<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">' +
-                        '<div class="task-bar-bg" style="flex:1;"><div class="task-bar-fill" style="width:' + pct + '%;"></div><div class="task-bar-text">' + (val > 0 ? val + ' / ' + tTotal + ' ' + (t.unit || 'm') : 'No data') + '</div></div>' +
+                        '<div class="task-bar-bg" style="flex:1;"><div class="task-bar-fill" style="width:' + pct + '%;"></div><div class="task-bar-text">' + val + ' / ' + tTotal + ' ' + (t.unit || 'm') + '</div></div>' +
                     '</div>' +
                     (taskStart && taskEnd ? '<div class="line-summary-dates">Task Period: ' + taskStart + ' → ' + taskEnd + ' | ' + tDays + ' days total</div>' : '') +
                     (taskStart && taskEnd ? '<div class="line-summary-dates" style="color:' + dayStatusColor + ';">Days Used: ' + taskDaysUsed + ' | Days Left: ' + taskDaysLeft + '</div>' : '') +
                 '</div>';
             });
-            var overallLinePct = validTasks > 0 ? Math.round(totalPctSum / validTasks) : 0;
+            var overallLinePct = validTasks > 0 ? Math.floor(totalPctSum / validTasks) : 0;
             var lineResources = 0;
             var lineResourceCount = 0;
             history.forEach(function(h) {
@@ -1156,7 +1104,7 @@
                 var val = latestProgress[t.id] || 0;
                 var tTotal = t.total || 100;
                 var pct = val > 0 ? Math.min(100, Math.round((val / tTotal) * 100)) : 0;
-                text += '*' + t.name + ':* ' + (val > 0 ? val + '/' + tTotal + ' ' + (t.unit || 'm') + ' (' + pct + '%)' : 'No data') + '\n';
+                text += '*' + t.name + ':* ' + val + '/' + tTotal + ' ' + (t.unit || 'm') + ' (' + pct + '%)\n';
             });
             return text;
         }
@@ -1237,7 +1185,7 @@
             currentReport.line = { name: name };
             if (!currentReport.tasks[name]) currentReport.tasks[name] = {};
             document.querySelectorAll('.line-btn').forEach(function(el) { el.classList.toggle('selected', el.textContent === name); });
-            showStep('step-worker'); showStep('step-tasks'); showStep('step-notes'); showStep('step-photos'); showStep('step-generate');
+            showStep('step-worker'); showStep('step-tasks'); showStep('step-notes'); showStep('step-generate');
             showExportBar(); renderTasks(); updatePreview(); showToast('Line: ' + name);
         }
 
@@ -1350,55 +1298,6 @@
             updatePreview();
         }
 
-        function openCamera() {
-            var input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.capture = 'environment';
-            input.style.cssText = 'position:absolute;left:-9999px;top:-9999px;opacity:0;width:1px;height:1px;';
-            document.body.appendChild(input);
-            input.addEventListener('change', function() {
-                if (this.files && this.files[0]) handlePhotos(this.files);
-                setTimeout(function() { if (input.parentNode) document.body.removeChild(input); }, 2000);
-            });
-            input.click();
-        }
-
-        function handlePhotos(files) {
-            Array.from(files).forEach(function(file) {
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    currentReport.photos.push({ src: e.target.result, name: file.name });
-                    renderPhotos();
-                    updatePreview();
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-
-        function renderPhotos() {
-            var grid = document.getElementById('photoGrid');
-            grid.innerHTML = '';
-            currentReport.photos.forEach(function(p, i) {
-                var div = document.createElement('div');
-                div.className = 'photo-item';
-                div.innerHTML = '<img src="' + p.src + '" alt="' + p.name + '"><button class="photo-remove" data-idx="' + i + '">x</button>';
-                grid.appendChild(div);
-            });
-            grid.querySelectorAll('.photo-remove').forEach(function(btn) {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault(); e.stopPropagation();
-                    removePhoto(parseInt(this.getAttribute('data-idx')));
-                });
-            });
-        }
-
-        function removePhoto(idx) {
-            currentReport.photos.splice(idx, 1);
-            renderPhotos();
-            updatePreview();
-        }
-
         function generateReportText() {
             var worker = document.getElementById('workerName').value || 'Not specified';
             var resources = document.getElementById('resourcesCount').value || '0';
@@ -1443,6 +1342,7 @@
                 for (var i = 0; i < filled; i++) bar += '▓';
                 for (var i = 0; i < empty; i++) bar += '░';
                 var daysInfo = '';
+                var statusLabel = '';
                 if (t.start && t.end) {
                     var startDate = new Date(t.start);
                     var endDate = new Date(t.end);
@@ -1451,14 +1351,14 @@
                     endDate.setHours(0,0,0,0);
                     var totalDays = Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)));
                     var daysLeft = Math.max(0, Math.round((endDate - today) / (1000 * 60 * 60 * 24)));
-                    daysInfo = '\n(' + daysLeft + ' days left) (' + totalDays + ' Allocated days)';
+                    daysInfo = '\n(' + daysLeft + ' days left before EOT) (' + totalDays + ' Allocated days)';
+                    statusLabel = pct >= 100 ? 'Done' : (isTaskBehindSchedule(t, val) ? 'Behind' : 'On Track');
                 }
-                text += '*' + t.name + ':* ' + pct + '% (' + remaining + ' ' + unit + ' left)( total ' + total + ' ' + unit + ') \n' + bar + daysInfo + '\n\n';
+                text += '*' + t.name + ':* ' + pct + '% (' + remaining + ' ' + unit + ' left)( total ' + total + ' ' + unit + ') \n' + bar + (statusLabel ? '  ' + statusLabel : '') + daysInfo + '\n\n';
             });
             if (achievements) text += '*ACHIEVEMENTS:*\n' + achievements + '\n\n';
             if (issues) text += '*ISSUES:*\n' + issues + '\n\n';
             if (tomorrow) text += '*TOMORROW\'S PLAN:*\n' + tomorrow + '\n\n';
-            if (currentReport.photos.length > 0) text += '*PHOTOS ATTACHED:* ' + currentReport.photos.length;
             return text;
         }
 
@@ -1489,40 +1389,12 @@
         async function copyReport() {
             saveReportToStorage();
             var text = generateReportText();
-            var items = [];
-            if (currentReport.photos.length > 0) {
-                try {
-                    for (var i = 0; i < currentReport.photos.length; i++) {
-                        var p = currentReport.photos[i];
-                        var blob = await dataURLtoBlob(p.src);
-                        items.push(new ClipboardItem({ 'image/png': blob }));
-                    }
-                } catch(e) {}
-            }
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 try {
                     await navigator.clipboard.writeText(text);
                     showToast('Report text copied!', 'success');
                 } catch(e) { fallbackCopy(text); }
             } else { fallbackCopy(text); }
-            if (items.length > 0 && navigator.clipboard && navigator.clipboard.write) {
-                try {
-                    await navigator.clipboard.write(items);
-                    showToast('Report + photos copied!', 'success');
-                } catch(e) {}
-            }
-        }
-
-        function dataURLtoBlob(dataURL) {
-            return new Promise(function(resolve) {
-                var arr = dataURL.split(',');
-                var mime = arr[0].match(/:(.*?);/)[1];
-                var bstr = atob(arr[1]);
-                var n = bstr.length;
-                var u8arr = new Uint8Array(n);
-                for (var i = 0; i < n; i++) u8arr[i] = bstr.charCodeAt(i);
-                resolve(new Blob([u8arr], { type: mime }));
-            });
         }
 
         function fallbackCopy(text) {
@@ -1541,15 +1413,14 @@
         }
 
         function startOver() {
-            currentReport = { project: null, line: null, worker: '', resources: '', shift: 'Day', tasks: {}, notes: {}, photos: [] };
+            currentReport = { project: null, line: null, worker: '', resources: '', shift: 'Day', tasks: {}, notes: {} };
             document.getElementById('workerName').value = '';
             document.getElementById('resourcesCount').value = '';
             document.getElementById('shiftSelect').value = 'Day';
             document.getElementById('achievements').value = '';
             document.getElementById('issues').value = '';
             document.getElementById('tomorrowPlan').value = '';
-            document.getElementById('photoGrid').innerHTML = '';
-            ['step-line','step-worker','step-tasks','step-notes','step-photos','step-generate'].forEach(function(id) {
+            ['step-line','step-worker','step-tasks','step-notes','step-generate'].forEach(function(id) {
                 document.getElementById(id).classList.add('hidden');
             });
             document.querySelectorAll('.project-card').forEach(function(el) { el.classList.remove('selected'); });
@@ -1838,7 +1709,7 @@
                 totalPctSum += pct; validTasks++;
                 if (pct >= 100) completedCount++;
             });
-            var overallLinePct = validTasks > 0 ? Math.round(totalPctSum / validTasks) : 0;
+            var overallLinePct = validTasks > 0 ? Math.floor(totalPctSum / validTasks) : 0;
 
             var headerHtml = '<div style="border-bottom:3px solid #128C7E;padding-bottom:15px;margin-bottom:25px;">' +
                 '<h1 style="color:#128C7E;font-size:28px;margin:0 0 5px 0;font-weight:700;">' + proj.name + ' - ' + lineName + '</h1>' +
@@ -1850,7 +1721,7 @@
                 if (h.resources) { var res = parseInt(h.resources); if (!isNaN(res) && res > 0) { lineResources += res; lineResCount++; } }
             });
             var avgLineRes = lineResCount > 0 ? Math.round(lineResources / lineResCount) : 0;
-            var statsHtml = '<div style="display:flex;gap:20px;margin-bottom:25px;">' +
+            var statsHtml = '<div style="display:flex;gap:20px;margin-bottom:25px;page-break-inside:avoid;">' +
                 '<div style="flex:1;background:#f0fdf4;padding:15px;border-radius:8px;text-align:center;border:1px solid #bbf7d0;">' +
                 '<div style="font-size:32px;font-weight:800;color:#128C7E;">' + overallLinePct + '%</div>' +
                 '<div style="font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Overall Progress</div></div>' +
@@ -1874,7 +1745,8 @@
                 '<th style="padding:10px 8px;text-align:center;border:1px solid #0d6b63;font-weight:600;width:120px;">Progress</th>' +
                 '<th style="padding:10px 8px;text-align:center;border:1px solid #0d6b63;font-weight:600;">Quantity</th>' +
                 '<th style="padding:10px 8px;text-align:center;border:1px solid #0d6b63;font-weight:600;">Status</th>' +
-                '<th style="padding:10px 8px;text-align:center;border:1px solid #0d6b63;font-weight:600;">Deadline</th>' +
+                '<th style="padding:10px 8px;text-align:center;border:1px solid #0d6b63;font-weight:600;">Start Date</th>' +
+                '<th style="padding:10px 8px;text-align:center;border:1px solid #0d6b63;font-weight:600;">Due Date</th>' +
                 '</tr></thead><tbody>';
 
             var rowCount = 0;
@@ -1885,15 +1757,17 @@
                 var pct = val > 0 ? Math.min(100, Math.round((val / tTotal) * 100)) : 0;
                 var statusColor = pct >= 100 ? '#10b981' : (val > 0 ? '#25D366' : '#9ca3af');
                 var statusText = pct >= 100 ? 'Complete' : (val > 0 ? 'In Progress' : 'Not Started');
+                var startDate = t.start ? new Date(t.start).toLocaleDateString('en-GB') : 'Not set';
                 var deadline = t.end ? new Date(t.end).toLocaleDateString('en-GB') : 'Not set';
                 var bg = rowCount % 2 === 0 ? '#f9fafb' : '#ffffff';
-                var barHtml = pct > 0 ? '<div style="width:100%;height:8px;background:#e5e7eb;border-radius:4px;margin-top:4px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + statusColor + ';border-radius:4px;"></div></div><div style="font-size:11px;color:#6b7280;margin-top:2px;">' + pct + '%</div>' : '<div style="font-size:11px;color:#9ca3af;margin-top:2px;">No data</div>';
+                var barHtml = '<div style="width:100%;height:8px;background:#e5e7eb;border-radius:4px;margin-top:4px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + statusColor + ';border-radius:4px;"></div></div><div style="font-size:11px;color:#6b7280;margin-top:2px;">' + pct + '%</div>';
 
-                tableHtml += '<tr style="background:' + bg + ';">' +
+                tableHtml += '<tr style="background:' + bg + ';page-break-inside:avoid;">' +
                     '<td style="padding:8px;border:1px solid #d1d5db;font-weight:600;color:#374151;">' + t.name + '</td>' +
                     '<td style="padding:8px;border:1px solid #d1d5db;text-align:center;">' + barHtml + '</td>' +
-                    '<td style="padding:8px;border:1px solid #d1d5db;text-align:center;font-weight:600;">' + (val > 0 ? val + ' / ' + tTotal + ' ' + (t.unit || 'm') : '-') + '</td>' +
+                    '<td style="padding:8px;border:1px solid #d1d5db;text-align:center;font-weight:600;">' + val + ' / ' + tTotal + ' ' + (t.unit || 'm') + '</td>' +
                     '<td style="padding:8px;border:1px solid #d1d5db;text-align:center;"><span style="color:' + statusColor + ';font-weight:700;">' + statusText + '</span></td>' +
+                    '<td style="padding:8px;border:1px solid #d1d5db;text-align:center;color:#6b7280;">' + startDate + '</td>' +
                     '<td style="padding:8px;border:1px solid #d1d5db;text-align:center;color:#6b7280;">' + deadline + '</td>' +
                     '</tr>';
                 rowCount++;
@@ -1921,7 +1795,7 @@
                         if (v > 0) hCount++;
                     });
                     var bg = idx % 2 === 0 ? '#f9fafb' : '#ffffff';
-                    historyHtml += '<tr style="background:' + bg + ';">' +
+                    historyHtml += '<tr style="background:' + bg + ';page-break-inside:avoid;">' +
                         '<td style="padding:8px;border:1px solid #d1d5db;">' + hDate + '</td>' +
                         '<td style="padding:8px;border:1px solid #d1d5db;font-weight:600;">' + hWorker + '</td>' +
                         '<td style="padding:8px;border:1px solid #d1d5db;text-align:center;">' + hShift + '</td>' +
@@ -1933,11 +1807,12 @@
             }
 
             var opt = {
-                margin: [0.5, 0.5, 0.5, 0.5],
+                margin: [0.4, 0.4, 0.4, 0.4],
                 filename: proj.name + '_' + lineName + '_Summary_' + now.toISOString().split('T')[0] + '.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+                image: { type: 'jpeg', quality: 1.0 },
+                html2canvas: { scale: 2, useCORS: true, scrollY: 0, scrollX: 0, logging: false },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait', compress: false },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
 
             showToast('Generating PDF...', 'success');
@@ -2018,10 +1893,36 @@
             updateSummary();
         }
 
+        // Keep historical reports linked to their project/line when either is renamed in Admin,
+        // so progress data doesn't silently disappear from the dashboard.
+        function renameReportsProject(oldName, newName) {
+            if (oldName === newName) return;
+            var allReports = getAllReports();
+            var changed = false;
+            allReports.forEach(function(r) {
+                if (r.project === oldName) { r.project = newName; changed = true; }
+            });
+            if (changed) localStorage.setItem('dpr_reports', JSON.stringify(allReports));
+        }
+
+        function renameReportsLine(projectName, oldLineName, newLineName) {
+            if (oldLineName === newLineName) return;
+            var allReports = getAllReports();
+            var changed = false;
+            allReports.forEach(function(r) {
+                if (r.project === projectName && r.line === oldLineName) { r.line = newLineName; changed = true; }
+            });
+            if (changed) localStorage.setItem('dpr_reports', JSON.stringify(allReports));
+        }
+
         function updateProjectName(input) {
             var idx = parseInt(input.getAttribute('data-idx'));
             if (config.projects[idx]) {
-                config.projects[idx].name = input.value;
+                var oldName = config.projects[idx].name;
+                var newName = input.value.trim();
+                if (!newName) return;
+                config.projects[idx].name = newName;
+                renameReportsProject(oldName, newName);
                 saveConfig();
                 renderProjects();
                 updateSummary();
@@ -2078,6 +1979,8 @@
                         delete config.lineTasks[oldKey];
                     }
                 }
+                var proj = config.projects.find(function(p) { return p.id === projId; });
+                if (proj) renameReportsLine(proj.name, oldName, newName);
                 saveConfig();
                 updateSummary();
             }
