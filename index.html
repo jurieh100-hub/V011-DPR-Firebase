@@ -126,11 +126,6 @@
         .quick-actions { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
         .quick-btn { padding: 0.5rem 1rem; border: 2px solid var(--primary); border-radius: 8px; background: white; color: var(--primary); font-weight: 600; font-size: 0.8125rem; cursor: pointer; flex: 1; min-width: 120px; text-align: center; }
         .quick-btn:active { background: var(--primary); color: white; }
-        .recent-reports { margin-top: 0.5rem; }
-        .recent-report-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--gray-50); border-radius: 6px; margin-bottom: 0.25rem; font-size: 0.8125rem; cursor: pointer; border: 1px solid transparent; }
-        .recent-report-item:hover { border-color: var(--primary); background: white; }
-        .recent-report-item .date { color: var(--gray-500); font-size: 0.75rem; }
-        .recent-report-item .info { font-weight: 600; color: var(--gray-700); }
 
         .badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
         .badge-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
@@ -189,7 +184,6 @@
                     <button class="quick-btn" id="btnContinueLast">Continue Last Report</button>
                     <button class="quick-btn" id="btnNewReport">New Report</button>
                 </div>
-                <div class="recent-reports" id="recentReports"></div>
             </div>
 
             <div class="dash-card">
@@ -376,6 +370,7 @@
                         <button class="btn btn-secondary" id="btnSyncConfig" style="width:auto;padding:0.5rem 1rem;font-size:0.875rem;">Sync Config Only</button>
                         <button class="btn btn-secondary" id="btnFirestoreSync" style="width:auto;padding:0.5rem 1rem;font-size:0.875rem;">Firestore Sync</button>
                         <button class="btn btn-secondary" id="btnResetConfig" style="width:auto;padding:0.5rem 1rem;font-size:0.875rem;">Reset</button>
+                        <button class="btn btn-danger" id="btnClearReports" style="width:auto;padding:0.5rem 1rem;font-size:0.875rem;">Clear Percentages</button>
                     </div>
                 </div>
             </div>
@@ -457,7 +452,6 @@
                         saveConfig();
                         renderProjects();
                         updateSummary();
-                        renderRecentReports();
                         console.log('Config loaded from Firestore');
                     }
                 }
@@ -541,7 +535,6 @@
             initDate();
             renderProjects();
             updateSummary();
-            renderRecentReports();
             bindEvents();
         });
 
@@ -596,6 +589,10 @@
             document.getElementById('btnResetConfig').addEventListener('click', function(e) {
                 e.preventDefault();
                 resetDefaults();
+            });
+            document.getElementById('btnClearReports').addEventListener('click', function(e) {
+                e.preventDefault();
+                clearAllReports();
             });
             document.getElementById('btnSyncConfig').addEventListener('click', function(e) {
                 e.preventDefault();
@@ -899,16 +896,14 @@
                     var lineTotal = 0;
                     lineTaskList.forEach(function(t) {
                         if (!t.name || t.name === 'New Task' || t.name.trim() === '') return;
-                        var val = taskVals[t.id];
+                        var val = taskVals[t.id] !== undefined ? taskVals[t.id] : 0;
                         var tTotal = t.total || 100;
-                        if (val !== undefined) {
-                            var pct = Math.min(100, Math.round((val / tTotal) * 100));
-                            allTaskPct.push(pct);
-                            linePctVals.push(pct);
-                            totalTasks++;
-                            lineTotal++;
-                            if (pct >= 100) { completedTasks++; lineCompleted++; }
-                        }
+                        var pct = Math.min(100, Math.round((val / tTotal) * 100));
+                        allTaskPct.push(pct);
+                        linePctVals.push(pct);
+                        totalTasks++;
+                        lineTotal++;
+                        if (pct >= 100) { completedTasks++; lineCompleted++; }
                     });
                     lineStats[p.id][ln] = {
                         avg: linePctVals.length > 0 ? Math.round(linePctVals.reduce(function(a,b){return a+b;}, 0) / linePctVals.length) : 0,
@@ -1065,7 +1060,7 @@
                 var val = latestProgress[t.id] || 0;
                 var tTotal = t.total || 100;
                 var pct = val > 0 ? Math.min(100, Math.round((val / tTotal) * 100)) : 0;
-                if (val > 0) { totalPctSum += pct; validTasks++; }
+                totalPctSum += pct; validTasks++;
                 if (pct >= 100) completedCount++;
                 var taskStart = t.start || '';
                 var taskEnd = t.end || '';
@@ -1181,45 +1176,6 @@
             renderLines();
             selectLine(lineName);
             document.getElementById('step-worker').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-
-        function renderRecentReports() {
-            var container = document.getElementById('recentReports');
-            var allReports = getAllReports();
-            if (allReports.length === 0) {
-                container.innerHTML = '<div style="font-size:0.8125rem;color:var(--gray-400);text-align:center;padding:0.5rem;">No reports yet. Start your first one!</div>';
-                return;
-            }
-            var seen = new Set();
-            var recent = [];
-            allReports.slice().reverse().forEach(function(r) {
-                var key = (r.project || '') + '|' + (r.line || '');
-                if (!seen.has(key) && r.project && r.line) { seen.add(key); recent.push(r); }
-            });
-            var html = '<div style="font-size:0.75rem;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">Recent Lines</div>';
-            recent.slice(0, 5).forEach(function(r) {
-                var dateStr = r.date ? r.date : new Date(r.timestamp).toLocaleDateString();
-                html += '<div class="recent-report-item" data-project="' + (r.project || '') + '" data-line="' + (r.line || '') + '">' +
-                    '<div><span class="info">' + r.project + ' - ' + r.line + '</span><br><span class="date">' + dateStr + ' | ' + (r.worker || 'No name') + '</span></div>' +
-                    '<span style="color:var(--primary);font-weight:700;font-size:0.875rem;">&gt;</span></div>';
-            });
-            container.innerHTML = html;
-            container.querySelectorAll('.recent-report-item').forEach(function(item) {
-                item.addEventListener('click', function() {
-                    var projName = this.getAttribute('data-project');
-                    var lineName = this.getAttribute('data-line');
-                    var proj = config.projects.find(function(p) { return p.name === projName; });
-                    if (proj) {
-                        startOver();
-                        currentReport.project = proj;
-                        currentReport.line = { name: lineName };
-                        showView('viewReportForm');
-                        renderLines();
-                        selectLine(lineName);
-                        document.getElementById('step-worker').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                });
-            });
         }
 
         function continueLastReport() {
@@ -1463,7 +1419,7 @@
                 var val = lineTasks[t.id] || 0;
                 var total = t.total || 100;
                 var pct = val > 0 ? Math.min(100, Math.round((val / total) * 100)) : 0;
-                if (val > 0) { totalPctSum += pct; validTasks++; }
+                totalPctSum += pct; validTasks++;
             });
             var avgPct = validTasks > 0 ? Math.round(totalPctSum / validTasks) : 0;
             var text = '*DAILY PROGRESS REPORT*\n\n';
@@ -1879,7 +1835,7 @@
                 var val = latestProgress[t.id] || 0;
                 var tTotal = t.total || 100;
                 var pct = val > 0 ? Math.min(100, Math.round((val / tTotal) * 100)) : 0;
-                if (val > 0) { totalPctSum += pct; validTasks++; }
+                totalPctSum += pct; validTasks++;
                 if (pct >= 100) completedCount++;
             });
             var overallLinePct = validTasks > 0 ? Math.round(totalPctSum / validTasks) : 0;
@@ -2283,7 +2239,6 @@
                         renderAdminContent();
                         renderProjects();
                         updateSummary();
-                        renderRecentReports();
                         showToast('Full backup imported successfully (config + reports)');
                     } else {
                         showToast('Invalid backup file', 'error');
@@ -2329,7 +2284,6 @@
                             renderAdminContent();
                             renderProjects();
                             updateSummary();
-                            renderRecentReports();
                             showToast('Config synced - task targets updated, reports preserved');
                         } else {
                             showToast('Invalid config file', 'error');
@@ -2342,6 +2296,29 @@
                 reader.readAsText(file);
             });
             input.click();
+        }
+
+        // Delete all documents in the Firestore 'reports' collection
+        function clearReportsFromFirestore() {
+            if (!firebaseEnabled || !firestoreDb) return Promise.resolve();
+            return firestoreDb.collection('reports').get().then(function(snapshot) {
+                var batch = firestoreDb.batch();
+                snapshot.forEach(function(doc) { batch.delete(doc.ref); });
+                return batch.commit();
+            }).catch(function(e) {
+                console.error('Firestore reports clear failed:', e);
+            });
+        }
+
+        function clearAllReports() {
+            if (!confirm('Clear ALL progress percentages and reports for every project and line? This cannot be undone.')) return;
+            localStorage.setItem('dpr_reports', JSON.stringify([]));
+            expandedProjectId = null;
+            clearReportsFromFirestore().then(function() {
+                renderProjects();
+                backToDashboard();
+                showToast('All progress percentages cleared');
+            });
         }
 
         function resetDefaults() {
